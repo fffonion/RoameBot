@@ -1,5 +1,5 @@
 #ROAME.NET Crawler
-由于编码问题还没有在*nix下测试。windows用户可直接下载.exe
+由于编码问题还没有在*nix下测试。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
 ##PS
 路游网对图片下载会话作了限制，因此下载是单线程单任务进行的。
 
@@ -26,8 +26,7 @@
 ####logpath
 [未实现]输出日志路径
 ####name
-<<<<<<< HEAD
-抓取url，对于形如http://www.roame.net/index/little-busters/images只需输入little-busters；留空则使用built_in选项
+抓取url，对于形如<http://www.roame.net/index/little-busters/images>只需输入little-busters；留空则使用built_in选项
 ####built_in
 根据<http://www.roame.net/today>页的快速筛选选项。
 
