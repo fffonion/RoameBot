@@ -1,21 +1,26 @@
 #ROAME.NET Crawler
-由于编码问题还没有在*nix下测试。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
+py脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
+ - BUG提交请在issues中附带日志（roamebot.log
+
+![@fffonion](http://img.t.sinajs.cn/t5/style/images/register/logo.png)[@fffonion](http://weibo.com/376463435)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Blog](http://zmingcx.com/wp-content/themes/HotNewspro/images/caticon/wordpress.gif)[博客](http://yooooo.us)
+
 ##PS
 路游网对图片下载会话作了限制，因此下载是单线程单任务进行的。
 
 ##使用说明
+你也可以参见快速入门Readme.txt
 ###1.使用内置搜索
 在界面选择1即可，支持中英文搜索，并按默认设置下载
 ###2.配置文件config.ini说明
 ####[download]块
 ***
 ####skip_exist
-是否跳过已存在的文件，1-是[默认]，0-否
+是否跳过已存在的文件，2-是，且比较文件大小[默认]，1-是，0-否
 ####download_when_parse 
 是否边分析页面边下载，1-是[默认]，0-否，
 ####timeout
 设置超时时间，单位为秒,默认为10
-####buffersize
+####chunksize
 设置chunk值，单位为KB，默认为8，可能对下载速度有影响
 ####retries
 设置重试次数，默认为3
@@ -23,14 +28,7 @@
 设置下载目录名称 0-中文[默认]，1-英文，2-日文
 ####dir_path
 设置下载目录所在位置，默认为当前目录
-####logpath
-[未实现]输出日志路径
 ####name
-抓取url，对于形如<http://www.roame.net/index/little-busters/images>只需输入little-busters；留空则使用built_in选项
-####built_in
-根据<http://www.roame.net/today>页的快速筛选选项。
-
-=======
 抓取url，对于形如<http://www.roame.net/index/little-busters/images>只需输入little-busters；留空则使用built_in选项
 ####built_in
 根据<http://www.roame.net/today>页的快速筛选选项。
@@ -56,7 +54,11 @@
 ####first_page_num
 仅下载前多少页，留空为不限
 ####proxy
-[未实现]设置代理路径，留空则跟随IE代理
+设置代理路径，留空则跟随IE代理
+####proxy_name
+代理用户名
+####proxy_pswd
+代理密码
 ####[filter]过滤器块
 ***
 默认的过滤器名称为filter_0
@@ -64,16 +66,17 @@
 比例过滤器
 
 * 0：所有尺寸
-* 1：壁纸尺寸
+* 1：仅壁纸尺寸
 * 1：所有16:10
 * 2：所有16:9
 * 3：所有4:3
 * 4：所有5:4
-* 5：所有其他横向
-* 6：所有竖向
-* 7：所有等宽
+* 5：其他尺寸
+* 6：其他横向尺寸
+* 7：竖向图片
+* 8：等宽图片
 
-以下过滤器尚未实现
+以下过滤器不可用
 ####max_length
 指定最大长度
 ####max_width
@@ -86,3 +89,7 @@
 指定最大文件大小
 ####min_size
 指定最小文件大小
+
+##授权
+```
+[GPLv2授权](http://opensource.org/licenses/gpl-2.0.php)
