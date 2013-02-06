@@ -13,4 +13,4 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=True,
-          console=True , icon='ICO_79.ico')
+          console=True , icon='Robotics-Notes-65855.ico')
