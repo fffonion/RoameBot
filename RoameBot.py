@@ -331,8 +331,8 @@ if __name__ == '__main__':
 		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在roamebot.log中')
 		f=open(os.path.abspath(os.curdir)+'/'+'romaebot.log','a')
 		f.write(fmttime()+'Stopped.\n')
-		#traceback.print_exc(file=f)
-		traceback.print_exc()
+		traceback.print_exc(file=f)
+		#traceback.print_exc()
 		f.flush()
 		f.close()
 
