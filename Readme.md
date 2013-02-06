@@ -1,8 +1,8 @@
+![@fffonion](http://img.t.sinajs.cn/t5/style/images/register/logo.png)[@fffonion](http://weibo.com/376463435)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Blog](http://zmingcx.com/wp-content/themes/HotNewspro/images/caticon/wordpress.gif)[博客](http://yooooo.us)
+
 #ROAME.NET Crawler
 py脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
- - BUG提交请在issues中附带日志（roamebot.log
-
-![@fffonion](http://img.t.sinajs.cn/t5/style/images/register/logo.png)[@fffonion](http://weibo.com/376463435)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Blog](http://zmingcx.com/wp-content/themes/HotNewspro/images/caticon/wordpress.gif)[博客](http://yooooo.us)
+ - BUG提交请在issues中附带日志（roamebot.log）
 
 ##PS
 路游网对图片下载会话作了限制，因此下载是单线程单任务进行的。
