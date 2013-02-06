@@ -1,4 +1,4 @@
-#ROAME.NET Crawler
+#路游网小爬虫
 py脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
  - BUG提交请在issues中附带日志（roamebot.log）
 
