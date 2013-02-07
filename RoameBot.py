@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.1'
+__version__ = '1.3'
 
 import urllib2,re,os,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
