@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.31'
+__version__ = '1.32'
 
 import urllib2,re,os,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -158,7 +158,7 @@ def fmttime():
 
 def read_config(sec,key):
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.path.abspath(os.curdir)+'/'+'config.ini')
+	cf.read(os.getcwdu()+os.path.sep+'config.ini')
 	val=cf.get(sec, key)
 	if val=='':
 		return ''
@@ -167,12 +167,12 @@ def read_config(sec,key):
 
 def write_config(sec,key,val):
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.path.abspath(os.curdir)+'/'+'config.ini')
+	cf.read(os.getcwdu()+os.path.sep+'config.ini')
 	cf.set(sec, key,val)
-	cf.write(open(os.path.abspath(os.curdir)+'/'+'config.ini', "w"))
+	cf.write(open(os.getcwdu()+os.path.sep+'config.ini', "w"))
 
 def init_config():
-	filename = os.path.abspath(os.curdir)+'/'+'config.ini'
+	filename = os.getcwdu()+os.path.sep+'config.ini'
 	f=file(filename,'w')
 	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\ndir_name = 2\ndir_path = \nname = hyouka\nbuilt_in = 21\nfilter = filter_0\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1\nmax_length = \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = ')
 	f.flush()
@@ -307,17 +307,33 @@ def quick_filter():
 		main()
 	except ValueError:
 		print_c('[なに？]σ(· ·?) \n')
-		
+
+def update():
+	newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
+	if newver!=__version__:
+		print_c("花现新版本："+newver)
+		if os.path.split(sys.argv[0])[1].find('py')==-1:#is exe
+			ext='.exe'
+			print_c('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
+		else:
+			ext='.py'
+		filename=os.getcwdu()+os.path.sep+"RoameBot."+newver+ext
+		fileHandle=open(filename,'wb')
+		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
+		fileHandle.close()
+		print_c("\n最新到了版本："+__version__)
+	else:
+		print_c("已经是最新版本啦更新控："+__version__)
 if __name__ == '__main__':  
 	try:
-		if not os.path.exists(os.path.abspath(os.curdir)+'/'+'config.ini'):#first time
+		if not os.path.exists(os.getcwdu()+os.path.sep+'config.ini'):#first time
 			init_config()
 		init_proxy()
 		reload(sys)
 		sys.setdefaultencoding('utf-8')
 		print_c('「ロアメボット。」'+__version__+'  ·ω·）ノ')
-		while input !='4':
-			print_c('1.搜索\n2.快速筛选\n3.继续上次任务\n4.退出\n')
+		while input !='5':
+			print_c('1.搜索\n2.快速筛选\n3.继续上次任务\n4.更新\n5.退出\n')
 			input=raw_input('> ')
 			if input=='3':
 				main()
@@ -325,13 +341,18 @@ if __name__ == '__main__':
 				search()
 			elif input=='2':
 				quick_filter()
-			elif input!='4':
+			elif input=='4':
+				update()
+			elif input!='5':
 				print_c('按错了吧亲╭(╯3╰)╮\n')
 	except Exception,ex:
 		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在roamebot.log中')
-		f=open(os.path.abspath(os.curdir)+'/'+'romaebot.log','a')
+		f=open(os.getcwdu()+os.path.sep+'romaebot.log','a')
 		f.write(fmttime()+'Stopped.\n')
-		traceback.print_exc(file=f)
-		#traceback.print_exc()
+		#traceback.print_exc(file=f)
+		traceback.print_exc()
 		f.flush()
 		f.close()
+print_c("按任意键退出亲~")
+if sys.platform=='win32':
+	os.system('pause>nul'.decode('utf-8'))
