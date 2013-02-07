@@ -174,7 +174,7 @@ def write_config(sec,key,val):
 def init_config():
 	filename = os.path.abspath(os.curdir)+'/'+'config.ini'
 	f=file(filename,'w')
-	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\ndir_name = 2\ndir_path = \nname = hyouka\nbuilt_in = 21\nfilter = filter_0\nfirst_page_num = \nproxy = http://proxy.com/\nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1\nmax_length = \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = ')
+	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\ndir_name = 2\ndir_path = \nname = hyouka\nbuilt_in = 21\nfilter = filter_0\nfirst_page_num = \nproxy = /\nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1\nmax_length = \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = ')
 	f.flush()
 	f.close() 
 
@@ -198,7 +198,7 @@ def main():
 	DIR_NAME=read_config('download','dir_name')
 	dir_path=read_config('download','dir_path')=='' and os.path.abspath(os.curdir)	or read_config('download','dir_path')
 	#LOGPATH=read_config('download','logpath')
-	firstpagenum=read_config('download','first_page_num')
+	firstpagenum=int(read_config('download','first_page_num'))
 	if firstpagenum=='':
 		firstpagenum=2147483647
 	projname=read_config('download','name')
@@ -231,7 +231,7 @@ def main():
 	if not os.path.exists(WORKINGDIR):
 		os.mkdir(WORKINGDIR)
 	pagenum=1
-	while(nextpage!=None and pagenum<firstpagenum):
+	while(nextpage!=None and pagenum<=firstpagenum):
 		print '%sPage parsing started at %s' % (fmttime(),nextpage)
 		nextpage=parse_pagelist(nextpage,pagenum)
 		pagenum+=1
