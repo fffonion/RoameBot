@@ -1,7 +1,7 @@
 #路游动漫社区爬虫
 py脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
  - BUG提交请在issues中附带日志（roamebot.log）
-
+ - 更新日志[在这里~](https://github.com/fffonion/RoameBot/blob/master/History.md)
 ##PS
 路游社区对图片下载会话作了限制，因此下载是单线程单任务进行的。
 
