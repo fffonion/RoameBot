@@ -1,9 +1,9 @@
-#路游网小爬虫
+#路游动漫社区爬虫
 py脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
  - BUG提交请在issues中附带日志（roamebot.log）
 
 ##PS
-路游网对图片下载会话作了限制，因此下载是单线程单任务进行的。
+路游社区对图片下载会话作了限制，因此下载是单线程单任务进行的。
 
 ##使用说明
 你也可以参见快速入门Readme.txt
