@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.1'
+__version__ = '1.3'
 
 import urllib2,re,os,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -198,9 +198,11 @@ def main():
 	DIR_NAME=read_config('download','dir_name')
 	dir_path=read_config('download','dir_path')=='' and os.path.abspath(os.curdir)	or read_config('download','dir_path')
 	#LOGPATH=read_config('download','logpath')
-	firstpagenum=int(read_config('download','first_page_num'))
+	firstpagenum=read_config('download','first_page_num')
 	if firstpagenum=='':
 		firstpagenum=2147483647
+	else:
+		firstpagenum=int(firstpagenum)
 	projname=read_config('download','name')
 	#determine first page
 	if projname=='' or 0<projname<20:
@@ -280,14 +282,12 @@ def search():
 				'('+list[i][2]+')'
 	print str(count)+' result(s) found.'
 	if count > 0:
-		try:
-			input=int(raw_input('> '))
-			if 0<input<count+1:
-				write_config('download','name',reslist[int(input)-1][0])
-				main()
-			else:
-				raise Exception('', '')
-		except ValueError:
+		#try:
+		input=int(raw_input('> '))
+		if 0<input<count+1:
+			write_config('download','name',reslist[int(input)-1][0])
+			main()
+		else:
 			print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
 	#print reslist
 def quick_filter():
@@ -331,7 +331,7 @@ if __name__ == '__main__':
 		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在roamebot.log中')
 		f=open(os.path.abspath(os.curdir)+'/'+'romaebot.log','a')
 		f.write(fmttime()+'Stopped.\n')
-		traceback.print_exc(file=f)
-		#traceback.print_exc()
+		#traceback.print_exc(file=f)
+		traceback.print_exc()
 		f.flush()
 		f.close()
