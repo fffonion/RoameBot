@@ -322,7 +322,7 @@ def update():
 		fileHandle=open(filename,'wb')
 		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
 		fileHandle.close()
-		print_c('\n最新到了版本：'+newver)
+		print_c('\n更新到了版本：'+newver)
 	else:
 		print_c('已经是最新版本啦更新控：'+__version__)
 if __name__ == '__main__':  
