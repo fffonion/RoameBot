@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.32'
+__version__ = '1.33'
 
 import urllib2,re,os,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -311,19 +311,20 @@ def quick_filter():
 def update():
 	newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
 	if newver!=__version__:
-		print_c("花现新版本："+newver)
+		print_c('花现新版本：'+newver)
 		if os.path.split(sys.argv[0])[1].find('py')==-1:#is exe
 			ext='.exe'
 			print_c('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
+			filename=os.getcwdu()+os.path.sep+'RoameBot.'+newver+ext
 		else:
 			ext='.py'
-		filename=os.getcwdu()+os.path.sep+"RoameBot."+newver+ext
+			filename=os.getcwdu()+os.path.sep+'RoameBot.py'
 		fileHandle=open(filename,'wb')
 		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
 		fileHandle.close()
-		print_c("\n最新到了版本："+__version__)
+		print_c('\n最新到了版本：'+newver)
 	else:
-		print_c("已经是最新版本啦更新控："+__version__)
+		print_c('已经是最新版本啦更新控：'+__version__)
 if __name__ == '__main__':  
 	try:
 		if not os.path.exists(os.getcwdu()+os.path.sep+'config.ini'):#first time
