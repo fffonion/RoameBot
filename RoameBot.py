@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.33'
+__version__ = '1.34'
 
 import urllib2,re,os,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -101,7 +101,7 @@ def parse_albumname(url):
 	return albumname[0]
 
 def parse_entry(url):
-	print url
+	#print url
 	content=urlget(url)
 	entries=[]
 	#exp <strong style="margin:0px;padding:0px">中二病也要谈恋爱 BD VOL.1</strong>
@@ -218,7 +218,7 @@ def main():
 			print namelist[0]
 			projname='/misc/'+yyyymm
 			entry='/index'+projname+'/images'
-		else:
+		else:#正常模式
 			namelist=parse_albumname(HOMEURL+'/index/'+projname)
 			entry=parse_entry(HOMEURL+'/index/'+projname)
 			if len(entry)>1:
@@ -227,17 +227,21 @@ def main():
 				entry=entry[0][0]
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		filtername=read_config('download','filter')
-		nextpage=HOMEURL+entry+'/index'+RATIO_SUFFIX[int(read_config(filtername,'ratio'))]+'.html'
+		ratiolist=read_config(filtername,'ratio').split('|')
+		nextpage=[]
+		for r in range(len(ratiolist)):
+			nextpage.append(HOMEURL+entry+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html')
 	WORKINGDIR=(dir_path+'/'+((namelist[2]=='' and DIR_NAME=='2')and namelist[0] or namelist[int(DIR_NAME)]))\
 	.decode('utf-8')
 	if not os.path.exists(WORKINGDIR):
 		os.mkdir(WORKINGDIR)
 	pagenum=1
-	while(nextpage!=None and pagenum<=firstpagenum):
-		print '%sPage parsing started at %s' % (fmttime(),nextpage)
-		nextpage=parse_pagelist(nextpage,pagenum)
-		pagenum+=1
-		#print PICLIST
+	for j in range(len(nextpage)):
+		while(nextpage[j]!=None and pagenum<=firstpagenum):
+			print '%sPage parsing started at %s' % (fmttime(),nextpage[j])
+			nextpage[j]=parse_pagelist(nextpage[j],pagenum)
+			pagenum+=1
+			#print PICLIST
 	print fmttime()+'Parse finished.'
 	print fmttime()+'Download started.'
 	for i in range(len(PICLIST)):
@@ -350,8 +354,8 @@ if __name__ == '__main__':
 		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在roamebot.log中')
 		f=open(os.getcwdu()+os.path.sep+'romaebot.log','a')
 		f.write(fmttime()+'Stopped.\n')
-		traceback.print_exc(file=f)
-		#traceback.print_exc()
+		#traceback.print_exc(file=f)
+		traceback.print_exc()
 		f.flush()
 		f.close()
 print_c("按任意键退出亲~")
