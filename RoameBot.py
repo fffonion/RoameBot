@@ -340,10 +340,10 @@ def main():
 		filename=working_dir+opath.sep+basename
 		#urllib.urlretrieve(PICLIST[i]['full'], filename,down_callback)
 		if opath.exists(filename) and skip_exist=='1':#存在则跳过
-				print fmttime()+'\bSkip '+basename+': Exists.'+' '*10
+				print fmttime()+'Skip '+basename+': Exists.'+' '*10
 		elif opath.exists(filename) and skip_exist=='2' and \
 		urlget(PICLIST[i]['full'],True,retries,chunk,opath.getsize(filename))=='SAME':
-				print fmttime()+'\bSkip '+basename+': Same size exists.'+' '*5
+				print fmttime()+'Skip '+basename+': Same size exists.'+' '*5
 		else:#不存在 或 2&&大小不符
 			print '\b%sDownloading %3d/%3d images: %s ->' % (fmttime(),i+1,len(PICLIST),basename)
 			#       |不知道为什么会空一格…所以加上退格…
