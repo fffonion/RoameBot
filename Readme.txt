@@ -10,3 +10,4 @@
 关于config.ini的完整说明请见：https://github.com/fffonion/RoameBot/blob/master/Readme.md
 
 fffonion@gmail.com
+2013-2-16
