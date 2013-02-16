@@ -3,9 +3,9 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.36'
+__version__ = '1.4'
 
-import urllib2,re,os,time,ConfigParser,sys,traceback,socket
+import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
 #INITURL='http://www.roame.net/index/hakuouki-shinsengumi-kitan'
 HOMEURL='http://www.roame.net'
@@ -13,7 +13,7 @@ RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth',
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
 				'-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
 				'-hotest-monthlyscore','-others-latest','-others-random']
-GET_INTERVAL=0.2
+GET_INTERVAL=0.15
 LOGPATH='roamebot.log'
 #urllib2 HOOk 基于 http://stackoverflow.com/questions/2028517/python-urllib2-progress-hook
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
@@ -191,7 +191,7 @@ def read_config(sec,key):
 	Read config from file
 	'''
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.getcwdu()+os.path.sep+'config.ini')
+	cf.read(os.getcwdu()+opath.sep+'config.ini')
 	val=cf.get(sec, key)
 	if val=='':
 		return ''
@@ -203,15 +203,15 @@ def write_config(sec,key,val):
 	Write config to file
 	'''
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.getcwdu()+os.path.sep+'config.ini')
+	cf.read(os.getcwdu()+opath.sep+'config.ini')
 	cf.set(sec, key,val)
-	cf.write(open(os.getcwdu()+os.path.sep+'config.ini', "w"))
+	cf.write(open(os.getcwdu()+opath.sep+'config.ini', "w"))
 
 def init_config():
 	'''
 	First run, initialize config.ini
 	'''
-	filename = os.getcwdu()+os.path.sep+'config.ini'
+	filename = os.getcwdu()+opath.sep+'config.ini'
 	f=file(filename,'w')
 	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\ndir_name = 2\ndir_path = \nname = hyouka\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1|7\nmax_length = \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = ')
 	f.flush()
@@ -227,6 +227,40 @@ def init_proxy():
 											+read_config('download','proxy')+']'})
 		opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
 		urllib2.install_opener(opener)
+		
+def load_remote_piclist(nextpage,firstpagenum,projfile_path):
+	'''
+	Remote PICLIST parsing
+	'''
+	#global PICLIST
+	#页面处理并得到所有图片URL，位于全局变量PICLIST中
+	pagenum=1
+	for j in range(len(nextpage)):
+		while(nextpage[j]!=None and pagenum<=firstpagenum):
+			print '%sPage parsing started at %s' % (fmttime(),nextpage[j])
+			nextpage[j]=parse_pagelist(nextpage[j],pagenum)
+			pagenum+=1
+			#print PICLIST
+	#保存到文件
+	file=open(projfile_path,'w')
+	for i in range(len(PICLIST)):
+		file.write(str(PICLIST[i]['index'])+','+PICLIST[i]['thumb']+','+PICLIST[i]['full']+','+str(PICLIST[i]['height'])+\
+				','+str(PICLIST[i]['width'])+','+str(PICLIST[i]['length'])+','+PICLIST[i]['format']+'\n')
+	file.close()
+	
+def load_local_piclist(projfile_path):
+	'''
+	read PICLIST from .roameproject
+	'''
+	global PICLIST
+	file=open(projfile_path,'r')
+	for line in file:
+		list=line.split(',')
+		PICLIST.append({'index':int(list[0]),'thumb':list[1],'full':list[2],'height':int(list[3]),'width':int(list[4]),\
+					'length':float(list[5]),'format':list[0]})
+	file.close()
+	return len(PICLIST)
+	
 #main entry
 def main():
 	#读取并设置变量
@@ -236,7 +270,7 @@ def main():
 	retries=int(read_config('download','retries'))
 	skip_exist=read_config('download','skip_exist')
 	dir_name=read_config('download','dir_name')
-	dir_path=read_config('download','dir_path')=='' and os.path.abspath(os.curdir)	or read_config('download','dir_path')
+	dir_path=read_config('download','dir_path')=='' and opath.abspath(os.curdir)	or read_config('download','dir_path')
 	dir_pref=read_config('download','dir_pref')
 	dir_suff=read_config('download','dir_suff')
 	#LOGPATH=read_config('download','logpath')
@@ -280,38 +314,36 @@ def main():
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
 	for i in range(3):
-		working_dir=(dir_path+os.path.sep+dir_pref+namelist[i]+dir_suff).decode('utf-8')
-		if os.path.exists(working_dir) and namelist[i]!='':#目录已存在
+		working_dir=(dir_path+opath.sep+dir_pref+namelist[i]+dir_suff).decode('utf-8')
+		if opath.exists(working_dir) and namelist[i]!='':#目录已存在
 			print_c(fmttime()+'Former folder "'+working_dir+'" exists. Use that one.')
 			break#使用之前已使用过的目录
 		else:#目录不存在或没有日文名（而且未被选择，否则2已=0） 
 			if int(dir_name)==i:#第一次任务
 				os.mkdir(working_dir)
 				break
-	#working_dir=(dir_path+os.path.sep+dir_pref+namelist[int(dir_name)]+dir_suff).decode('utf-8')#保存目录
-	print_c(fmttime()+'Working directory is:'+working_dir)
-	pagenum=1
+	#working_dir=(dir_path+opath.sep+dir_pref+namelist[int(dir_name)]+dir_suff).decode('utf-8')#保存目录
+	print_c(fmttime()+'Working directory is: '+working_dir)
 	###################开始主处理
-	#页面处理并得到所有图片URL，位于全局变量PICLIST中
-	for j in range(len(nextpage)):
-		while(nextpage[j]!=None and pagenum<=firstpagenum):
-			print '%sPage parsing started at %s' % (fmttime(),nextpage[j])
-			nextpage[j]=parse_pagelist(nextpage[j],pagenum)
-			pagenum+=1
-			#print PICLIST
-	print fmttime()+'Parse finished.'
+	projfile_path=(working_dir+opath.sep+'.roameproject').decode('utf-8')
+	if opath.exists(projfile_path) and opath.getsize(projfile_path)!=0:
+		load_local_piclist(projfile_path)
+		print fmttime()+'Load download progress from file. (Got '+str(len(PICLIST))+'p)'
+	else:
+		load_remote_piclist(nextpage,firstpagenum,projfile_path)
+		print fmttime()+'Parse finished. (Got '+str(len(PICLIST))+'p)'
 	print fmttime()+'Download started.'
 	#图片下载
 	for i in range(len(PICLIST)):
 		#time.sleep(GET_INTERVAL)#f*ck!!!
 		basename=re.findall('/([A-Za-z0-9._]+)$',PICLIST[i]['full'])[0]#切割文件名
-		filename=working_dir+os.path.sep+basename
+		filename=working_dir+opath.sep+basename
 		#urllib.urlretrieve(PICLIST[i]['full'], filename,down_callback)
-		if os.path.exists(filename) and skip_exist=='1':#存在则跳过
-				print '\bSkip '+basename+': Exists.'+' '*35
-		elif os.path.exists(filename) and skip_exist=='2' and \
-		urlget(PICLIST[i]['full'],True,retries,chunk,os.path.getsize(filename))=='SAME':
-				print '\bSkip '+basename+': Same size exists.'+' '*25
+		if opath.exists(filename) and skip_exist=='1':#存在则跳过
+				print fmttime()+'\bSkip '+basename+': Exists.'+' '*10
+		elif opath.exists(filename) and skip_exist=='2' and \
+		urlget(PICLIST[i]['full'],True,retries,chunk,opath.getsize(filename))=='SAME':
+				print fmttime()+'\bSkip '+basename+': Same size exists.'+' '*5
 		else:#不存在 或 2&&大小不符
 			print '\b%sDownloading %3d/%3d images: %s ->' % (fmttime(),i+1,len(PICLIST),basename)
 			#       |不知道为什么会空一格…所以加上退格…
@@ -320,6 +352,7 @@ def main():
 			fileHandle.write(urlget(PICLIST[i]['full'],True,retries,chunk))
 			fileHandle.close()
 	print '\n'+fmttime()+'Download finished.\n'+str(len(PICLIST))+' pictures saved under \"'+working_dir
+	os.remove(working_dir+opath.sep+'.roameproject')
 	
 def search():
 	'''
@@ -386,13 +419,13 @@ def update():
 	newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
 	if newver!=__version__:
 		print_c('花现新版本：'+newver)
-		if os.path.split(sys.argv[0])[1].find('py')==-1:#is exe
+		if opath.split(sys.argv[0])[1].find('py')==-1:#is exe
 			ext='.exe'
 			print_c('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
-			filename=os.getcwdu()+os.path.sep+'RoameBot.'+newver+ext
+			filename=os.getcwdu()+opath.sep+'RoameBot.'+newver+ext
 		else:
 			ext='.py'
-			filename=os.getcwdu()+os.path.sep+'RoameBot.py'
+			filename=os.getcwdu()+opath.sep+'RoameBot.py'
 		fileHandle=open(filename,'wb')
 		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
 		fileHandle.close()
@@ -402,7 +435,7 @@ def update():
 		
 if __name__ == '__main__':  
 	try:
-		if not os.path.exists(os.getcwdu()+os.path.sep+'config.ini'):#first time
+		if not opath.exists(os.getcwdu()+opath.sep+'config.ini'):#first time
 			init_config()
 		init_proxy()
 		#重设默认编码
@@ -425,12 +458,12 @@ if __name__ == '__main__':
 				print_c('按错了吧亲╭(╯3╰)╮\n')
 	except Exception,ex:
 		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在roamebot.log中')
-		f=open(os.getcwdu()+os.path.sep+'romaebot.log','a')
+		f=open(os.getcwdu()+opath.sep+'romaebot.log','a')
 		f.write(fmttime()+'Stopped.\n')
 		traceback.print_exc(file=f)
 		#traceback.print_exc()
 		f.flush()
 		f.close()
-print_c("按任意键退出亲~")
 if sys.platform=='win32':
+	print_c("按任意键退出亲~")
 	os.system('pause>nul'.decode('utf-8'))
