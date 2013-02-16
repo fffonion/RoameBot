@@ -25,8 +25,13 @@ py脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffoni
 设置重试次数，默认为3
 ####dir_name
 设置下载目录名称 0-中文[默认]，1-英文，2-日文
+若已存在中/英/日任何目录时，优先使用已存在的目录而不新建
 ####dir_path
 设置下载目录所在位置，默认为当前目录
+####dir_pref
+设置下载目录名称固定前缀
+####dir_suff
+设置下载目录名称固定后缀
 ####name
 抓取url，对于形如<http://www.roame.net/index/little-busters/images>只需输入little-busters；留空则使用built_in选项
 ####built_in

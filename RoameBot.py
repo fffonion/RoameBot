@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.35'
+__version__ = '1.36'
 
 import urllib2,re,os,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -213,7 +213,7 @@ def init_config():
 	'''
 	filename = os.getcwdu()+os.path.sep+'config.ini'
 	f=file(filename,'w')
-	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\ndir_name = 2\ndir_path = \nname = hyouka\nbuilt_in = 21\nfilter = filter_0\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1\nmax_length = \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = ')
+	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\ndir_name = 2\ndir_path = \nname = hyouka\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1|7\nmax_length = \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = ')
 	f.flush()
 	f.close() 
 
@@ -234,9 +234,11 @@ def main():
 	socket.setdefaulttimeout(int(timeout))
 	chunk=int(read_config('download','chunksize'))
 	retries=int(read_config('download','retries'))
-	SKIP_EXIST=read_config('download','skip_exist')
-	DIR_NAME=read_config('download','dir_name')
+	skip_exist=read_config('download','skip_exist')
+	dir_name=read_config('download','dir_name')
 	dir_path=read_config('download','dir_path')=='' and os.path.abspath(os.curdir)	or read_config('download','dir_path')
+	dir_pref=read_config('download','dir_pref')
+	dir_suff=read_config('download','dir_suff')
 	#LOGPATH=read_config('download','logpath')
 	firstpagenum=read_config('download','first_page_num')
 	if firstpagenum=='':#未指定默认为无限制
@@ -253,7 +255,7 @@ def main():
 		print_c('没有指定名称,按照快速筛选(built_in)选项下载')
 		nextpage.append(HOMEURL+'/today/index'+BUILT_IN_SUFFIX[int(read_config('download','built_in'))]+'.html')
 		namelist=[time.strftime('%Y-%m-%d %H-%M-%S',time.localtime()),'','']
-		DIR_NAME=0#only this one
+		dir_name=0#only this one
 	else:#正常模式OR散图模式
 		if projname=='misc':#散图模式
 			print_c('输入散图的年月，如201301，最早为200604:')
@@ -275,10 +277,19 @@ def main():
 		ratiolist=read_config(filtername,'ratio').split('|')
 		for r in range(len(ratiolist)):#依次构造
 			nextpage.append(HOMEURL+entry+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html')
-	WORKINGDIR=(dir_path+'/'+((namelist[2]=='' and DIR_NAME=='2')and namelist[0] or namelist[int(DIR_NAME)]))\
-	.decode('utf-8')#保存目录
-	if not os.path.exists(WORKINGDIR):
-		os.mkdir(WORKINGDIR)
+	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
+		dir_name='0'
+	for i in range(3):
+		working_dir=(dir_path+os.path.sep+dir_pref+namelist[i]+dir_suff).decode('utf-8')
+		if os.path.exists(working_dir) and namelist[i]!='':#目录已存在
+			print_c(fmttime()+'Former folder "'+working_dir+'" exists. Use that one.')
+			break#使用之前已使用过的目录
+		else:#目录不存在或没有日文名（而且未被选择，否则2已=0） 
+			if int(dir_name)==i:#第一次任务
+				os.mkdir(working_dir)
+				break
+	#working_dir=(dir_path+os.path.sep+dir_pref+namelist[int(dir_name)]+dir_suff).decode('utf-8')#保存目录
+	print_c(fmttime()+'Working directory is:'+working_dir)
 	pagenum=1
 	###################开始主处理
 	#页面处理并得到所有图片URL，位于全局变量PICLIST中
@@ -294,11 +305,11 @@ def main():
 	for i in range(len(PICLIST)):
 		#time.sleep(GET_INTERVAL)#f*ck!!!
 		basename=re.findall('/([A-Za-z0-9._]+)$',PICLIST[i]['full'])[0]#切割文件名
-		filename=WORKINGDIR+'/'+basename
+		filename=working_dir+os.path.sep+basename
 		#urllib.urlretrieve(PICLIST[i]['full'], filename,down_callback)
-		if os.path.exists(filename) and SKIP_EXIST=='1':#存在则跳过
+		if os.path.exists(filename) and skip_exist=='1':#存在则跳过
 				print '\bSkip '+basename+': Exists.'+' '*35
-		elif os.path.exists(filename) and SKIP_EXIST=='2' and \
+		elif os.path.exists(filename) and skip_exist=='2' and \
 		urlget(PICLIST[i]['full'],True,retries,chunk,os.path.getsize(filename))=='SAME':
 				print '\bSkip '+basename+': Same size exists.'+' '*25
 		else:#不存在 或 2&&大小不符
@@ -308,7 +319,7 @@ def main():
 			fileHandle=open(filename,'wb')
 			fileHandle.write(urlget(PICLIST[i]['full'],True,retries,chunk))
 			fileHandle.close()
-	print '\n'+fmttime()+'Download finished.\n'+str(len(PICLIST))+' pictures saved under \"'+WORKINGDIR
+	print '\n'+fmttime()+'Download finished.\n'+str(len(PICLIST))+' pictures saved under \"'+working_dir
 	
 def search():
 	'''
