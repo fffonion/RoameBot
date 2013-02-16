@@ -11,6 +11,7 @@ py脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffoni
 ###1.使用内置搜索
 在界面选择1即可，支持中英文搜索，并按默认设置下载
 ###2.配置文件config.ini说明
+###3.更新后出现no option错误的请删除原来的config.ini
 ####[download]块
 ***
 ####skip_exist
