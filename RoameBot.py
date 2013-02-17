@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.4'
+__version__ = '1.41'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -30,15 +30,16 @@ def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	if bytes_got >= total_size:#完成时
 		print backspace,
 
-def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1):
+def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer=''):
 	'''
 	urllib2 download module
 	'''
+	#print src
 	try:
 		#构造request
 		req = urllib2.Request(src)
 		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4')
-		#req.add_header('Referer', 'http://www.google.com/xxxx')
+		#req.add_header('Referer', referer)
 		#打开回复
 		resp = urllib2.urlopen(req)
 		resp.info()
@@ -49,37 +50,49 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1):
 			while total_size==None:
 				total_size=resp.info().getheader('Content-Length')
 				time.sleep(GET_INTERVAL)#F*CK!!!!!!!服务器太捉鸡……
+				if resp.info().getheader('Content-Type').strip()=='text/html':
+					total_size='-1'
 			total_size = int(total_size.strip())
-			#用头直接判断是否已下载
-			if total_size==downloaded:
-				return 'SAME'
-			#初始化变量
-			chunk_size*=1024
-			bytes_got = 0
-			init_time=time.time()
-			#开始chunk read
-			while 1:
-				chunk = resp.read(chunk_size)
-				content+=chunk
-				bytes_got += len(chunk)
-				if not chunk:#完成
-					break
-				chunk_report(bytes_got, chunk_size, total_size,init_time)
-			#content=chunk_read(resp, chunk*1024,chunk_report)
+			if total_size<=8843:#链接过期=None或有误=8843
+				print fmttime()+'Url expired or broken. Reparsing from referer page.'
+				content=urlget(parse_fullsize(referer),getimage,retries,chunk_size,downloaded,referer)
+			else:#正常下载
+				#用头信息直接判断是否已下载
+				if total_size==downloaded:
+					return 'SAME'
+				#初始化变量
+				chunk_size*=1024
+				bytes_got = 0
+				init_time=time.time()
+				#开始chunk read
+				while 1:
+					chunk = resp.read(chunk_size)
+					content+=chunk
+					bytes_got += len(chunk)
+					if not chunk:#完成
+						break
+					chunk_report(bytes_got, chunk_size, total_size,init_time)
+				#content=chunk_read(resp, chunk*1024,chunk_report)
 		else:#直接读取
 			content = resp.read()#.decode('utf-8')
+		#返回上级
 		return content
-	except urllib2.URLError, e:#错误处理 
- 		if isinstance(e.reason, socket.timeout):  
-			#重试处理
-			if retries>0:
-				return urlget(src,getimage,retries-1)
-			else:
+	except (urllib2.URLError,urllib2.HTTPError),e:#错误处理 
+ 		print e.code
+ 		if retries>0:#重试处理
+	 		#if isinstance(e.reason, socket.timeout):
+	 		print fmttime()+'Error['+str(e.code)+']',
+	 		if e.code==10060:#超时
+				print 'Connection timed out. Retrying '+str(retries)+' times.'
+			elif  e.code>=400:#客户端错误或服务器错误
+				print 'URL broken. Re-parsing from referer page.'
+				src=parse_fullsize(referer)
+			return urlget(src,getimage,retries-1,chunk_size,downloaded,referer)
+		else:
 				print 'Failed on '+src
 				return None
-		else:
-			raise
-	
+		
+		
 #NOT USING CURRENTLY	
 #class multiget(threading.Thread):
 #	def __init__(self,url):
@@ -146,11 +159,12 @@ def parse_pagelist(url,pagenum,mode=0):
 	picsize=re.findall('<strong>(\d+)×(\d+)</strong>',content)
 	#具体处理
 	for i in range(len(singlepic)):	
-		PICLIST.append({'index':0,'thumb':'','full':'','height':0,'width':0,'length':0,'format':''})
+		PICLIST.append({'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''})
 		PICLIST[-1]['index']=i+(pagenum-1)*8
 		fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
-		PICLIST[-1]['full']=parse_fullsize(HOMEURL+fullsizepageurl.replace(HOMEURL,''))
-		PICLIST[-1]['thumb']=re.findall('src=\"(.+)\/>',singlepic[i])[0]#缩略图url
+		PICLIST[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
+		PICLIST[-1]['full']=parse_fullsize(PICLIST[-1]['referpage'])
+		PICLIST[-1]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
 		PICLIST[-1]['width']=picsize[i][0]#图宽
 		PICLIST[-1]['height']=picsize[i][1]#图高
 		#图片文件长度
@@ -244,8 +258,9 @@ def load_remote_piclist(nextpage,firstpagenum,projfile_path):
 	#保存到文件
 	file=open(projfile_path,'w')
 	for i in range(len(PICLIST)):
-		file.write(str(PICLIST[i]['index'])+','+PICLIST[i]['thumb']+','+PICLIST[i]['full']+','+str(PICLIST[i]['height'])+\
-				','+str(PICLIST[i]['width'])+','+str(PICLIST[i]['length'])+','+PICLIST[i]['format']+'\n')
+		file.write(str(PICLIST[i]['index'])+','+PICLIST[i]['thumb']+','+PICLIST[i]['referpage']+','+PICLIST[i]['full']+','\
+				+str(PICLIST[i]['height'])+','+str(PICLIST[i]['width'])+','+str(PICLIST[i]['length'])+','\
+				+PICLIST[i]['format']+'\n')
 	file.close()
 	
 def load_local_piclist(projfile_path):
@@ -256,8 +271,8 @@ def load_local_piclist(projfile_path):
 	file=open(projfile_path,'r')
 	for line in file:
 		list=line.split(',')
-		PICLIST.append({'index':int(list[0]),'thumb':list[1],'full':list[2],'height':int(list[3]),'width':int(list[4]),\
-					'length':float(list[5]),'format':list[0]})
+		PICLIST.append({'index':int(list[0]),'thumb':list[1],'referpage':list[2],'full':list[3],'height':int(list[4]),\
+					'width':int(list[5]),'length':float(list[6]),'format':list[7]})
 	file.close()
 	return len(PICLIST)
 	
@@ -316,7 +331,7 @@ def main():
 	for i in range(3):
 		working_dir=(dir_path+opath.sep+dir_pref+namelist[i]+dir_suff).decode('utf-8')
 		if opath.exists(working_dir) and namelist[i]!='':#目录已存在
-			print_c(fmttime()+'Former folder "'+working_dir+'" exists. Use that one.')
+			print_c(fmttime()+'Former folder exists. Use that one.')
 			break#使用之前已使用过的目录
 		else:#目录不存在或没有日文名（而且未被选择，否则2已=0） 
 			if int(dir_name)==i:#第一次任务
@@ -342,14 +357,14 @@ def main():
 		if opath.exists(filename) and skip_exist=='1':#存在则跳过
 				print fmttime()+'Skip '+basename+': Exists.'+' '*10
 		elif opath.exists(filename) and skip_exist=='2' and \
-		urlget(PICLIST[i]['full'],True,retries,chunk,opath.getsize(filename))=='SAME':
+		urlget(PICLIST[i]['full'],True,retries,chunk,opath.getsize(filename),PICLIST[i]['referpage'])=='SAME':
 				print fmttime()+'Skip '+basename+': Same size exists.'+' '*5
 		else:#不存在 或 2&&大小不符
 			print '\b%sDownloading %3d/%3d images: %s ->' % (fmttime(),i+1,len(PICLIST),basename)
 			#       |不知道为什么会空一格…所以加上退格…
 			#保存到文件
 			fileHandle=open(filename,'wb')
-			fileHandle.write(urlget(PICLIST[i]['full'],True,retries,chunk))
+			fileHandle.write(urlget(PICLIST[i]['full'],True,retries,chunk,-1,PICLIST[i]['referpage']))
 			fileHandle.close()
 	print '\n'+fmttime()+'Download finished.\n'+str(len(PICLIST))+' pictures saved under \"'+working_dir
 	os.remove(working_dir+opath.sep+'.roameproject')
@@ -432,7 +447,6 @@ def update():
 		print_c('\n更新到了版本：'+newver)
 	else:
 		print_c('已经是最新版本啦更新控：'+__version__)
-		
 if __name__ == '__main__':  
 	try:
 		if not opath.exists(os.getcwdu()+opath.sep+'config.ini'):#first time
