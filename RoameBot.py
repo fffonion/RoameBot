@@ -58,7 +58,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer=''):
 						total_size='-1'#链接错误flag
 					else:
 						print(fmttime()+'Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.')
-						sleep_retry*=2
+						sleep_retry*=3
 			total_size = int(total_size.strip())
 			if total_size<=8843:#链接错误=-1或过期=8843
 				print fmttime()+'Url expired or broken. Reparsing from referer page.'
