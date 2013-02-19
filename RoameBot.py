@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.41'
+__version__ = '1.5'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -380,11 +380,27 @@ def search():
 	'''
 	Search module
 	'''
-	reslist=[]
+	urllist=[]
 	#从索引页处理所有名称
 	content=urlget('http://www.roame.net/index')
 	#exp:<div class="l2"><a href="/index/kikis-delivery-service">魔女宅急便 - Kiki's Delivery Service</a></div>
-	list=re.findall('<a href="/index/([a-z-]+)">(.+) - (.+)</a>',content)
+	#另三种：Vividred Operation - ，TYPE-MOON，GOSICK(6 pcs) 尼玛老子就为了这六个想了好久正则！！
+	#list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)[ -]+(.*)</a>',content):[ -]+无法匹配那6个，[ -]*无法分割字符串
+	#难道只能匹配好之后再分割么www好没劲我放弃了QAQ
+	#原来list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)</a>',content)
+	#不！我不会向不讲规范的站长低头的！！
+	#只要使用预处理大法并且第二、三个匹配变成非贪婪即可！这样>GOSICK</a>变成>GOSICK - </a啦~我怎么就那么笨呢wwwww
+	content=content.replace('</a',' - </a')
+	list=re.findall('<a href="/index/([0-9a-z-]+)">(.*?) - (.*?)( - )?</a',content)
+	#debug用
+	'''list2=re.findall('<a href="/index/([0-9a-z-]+)">(.+)[ -]*(.*)</a>',content)
+	print len(list),len(list2)
+	offset=0
+	for i in range(1225):
+		if list[i-offset][0]!=list2[i][0]:
+			print list2[i]
+			offset+=1
+	return'''
 	#询问输入
 	input=raw_input('Input your keyword:')
 	if sys.platform=='win32':
@@ -392,14 +408,17 @@ def search():
 	else:
 		input=input.decode('utf-8')
 	count=0
-	#顺序查找并打印
+	#顺序查找并分割打印
 	for i in range(len(list)):
 		if re.search(input.encode('utf-8'), list[i][1], re.IGNORECASE) or \
 		re.search(input, list[i][2], re.IGNORECASE):
-			reslist.append((list[i][0],list[i][1],list[i][2]))
+			urllist.append(list[i][0])
 			count+=1
 			try:
-				print str(count)+'.'+list[i][1].encode('utf-8').decode('utf-8')+'('+list[i][2]+')'
+				if list[i][2]!='':
+					print str(count)+'.'+list[i][1].encode('utf-8').decode('utf-8')+'('+list[i][2]+')'
+				else:
+					print str(count)+'.'+list[i][1].encode('utf-8').decode('utf-8')+list[i][2]
 			except UnicodeEncodeError:
 				print str(count)+'.'+list[i][1].replace('〜','~').encode('utf-8').decode('utf-8')+\
 				'('+list[i][2]+')'
@@ -408,7 +427,7 @@ def search():
 		#try:
 		input=int(raw_input('> '))
 		if 0<input<count+1:
-			write_config('download','name',reslist[int(input)-1][0])
+			write_config('download','name',urllist[int(input)-1])
 			main()
 		else:
 			print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
