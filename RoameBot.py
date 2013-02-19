@@ -123,7 +123,13 @@ def print_c(str):
 	'''
 	UTF-8 print module
 	'''
-	print str.decode('utf-8')
+	print normstr(str.decode('utf-8'))
+
+def normstr(str,errors='ignore'):
+	if sys.platform=='win32':
+		return str.encode('gbk',errors)
+	else:
+		return str.encode('utf-8',errors)
 	
 def parse_albumname(url):
 	'''
@@ -414,14 +420,10 @@ def search():
 		re.search(input, list[i][2], re.IGNORECASE):
 			urllist.append(list[i][0])
 			count+=1
-			try:
-				if list[i][2]!='':
-					print str(count)+'.'+list[i][1].encode('utf-8').decode('utf-8')+'('+list[i][2]+')'
-				else:
-					print str(count)+'.'+list[i][1].encode('utf-8').decode('utf-8')+list[i][2]
-			except UnicodeEncodeError:
-				print str(count)+'.'+list[i][1].replace('〜','~').encode('utf-8').decode('utf-8')+\
-				'('+list[i][2]+')'
+			if list[i][2]!='':
+				print normstr((str(count)+'.'+list[i][1]+'('+list[i][2]+')').decode('utf-8','ignore'))
+			else:
+				print normstr((str(count)+'.'+list[i][1]).decode('utf-8','ignore'))
 	print str(count)+' result(s) found.'
 	if count > 0:
 		#try:
