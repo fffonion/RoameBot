@@ -3,12 +3,15 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.5'
+__version__ = '1.6'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
+FILTER={}
 #INITURL='http://www.roame.net/index/hakuouki-shinsengumi-kitan'
 HOMEURL='http://www.roame.net'
+LASTUPDATE=0
+#常量
 RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth','-weqh']
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
 				'-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
@@ -54,7 +57,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer=''):
 				total_size=resp.info().getheader('Content-Length')
 				time.sleep(GET_INTERVAL*sleep_retry)#服务器太捉鸡……睡一觉
 				if resp.info().getheader('Content-Type').strip()=='text/html':
-					if sleep_retry>8:#最多睡三次
+					if sleep_retry>27:#最多睡三次
 						total_size='-1'#链接错误flag
 					else:
 						print(fmttime()+'Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.')
@@ -123,7 +126,7 @@ def print_c(str):
 	'''
 	UTF-8 print module
 	'''
-	print normstr(str.decode('utf-8'))
+	print(normstr(str.decode('utf-8')))
 
 def normstr(str,errors='ignore'):
 	if sys.platform=='win32':
@@ -163,31 +166,47 @@ def parse_pagelist(url,pagenum,mode=0):
 	Return pic list, elem is dict
 	'''
 	global PICLIST
+	up_to_date=False
+	today_mode=False
 	#pic_structure={'index':0,'thumb':'','full':'','width':0,'height':0,'length':0}
 	content=urlget(url)
 	singlepic=re.findall('/h[23]>(.*?)<div',content,re.DOTALL)#singlepic 包含 thumb and full-size page url
-	picinfo=re.findall('font-size:12px;font-weight:bold.*\">(.+) - ([0-9.]+)([A-Z]+)</div',content)
+	#<div style="color:#456"><span style="color:#abc;font-size:10px">by</span> <u>EUREKASEVEN</u></div>
+	picupload=re.findall('font-size:10px">by</span> <u>(.+)</u>',content)
+	#<div style="color:#456">3天前（2013-02-16 22:30）</div>
+	picdate=re.findall('前（(.+)）</div>',content)
+	picinfo=re.findall('font-size:12px;font-weight:bold.*\">(.+) - ([0-9.]+)([A-Z]+)</div',content)#格式和大小
 	if picinfo==[]:#有两种情况，以下对today模式
 		picinfo=re.findall('r:#789">([0-9.]+)([A-Z]+)</span',content)
+		today_mode=True
 	picsize=re.findall('<strong>(\d+)×(\d+)</strong>',content)
 	#具体处理
 	for i in range(len(singlepic)):	
-		PICLIST.append({'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''})
-		PICLIST[-1]['index']=i+(pagenum-1)*8
-		fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
-		PICLIST[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
-		PICLIST[-1]['full']=parse_fullsize(PICLIST[-1]['referpage'])
-		PICLIST[-1]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
-		PICLIST[-1]['width']=picsize[i][0]#图宽
-		PICLIST[-1]['height']=picsize[i][1]#图高
+		if not today_mode:
+			if LASTUPDATE>time.mktime(time.strptime(picdate[i],'%Y-%m-%d %H:%M')):#已到时间分割点
+				up_to_date=True
+				break
 		#图片文件长度
 		if(picinfo[i][-1]=='MB'):
-			PICLIST[-1]['length']=float(picinfo[i][-2])*1024#float化防止变int
+			piclength=float(picinfo[i][-2])*1024#float化防止变int
 		else:
-			PICLIST[-1]['length']=picinfo[i][-2]
-		PICLIST[-1]['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
+			piclength=picinfo[i][-2]
+		#测试filter
+		if FILTER['min_width']<=float(picsize[i][0])<=FILTER['max_width'] and \
+		FILTER['min_length']<=float(picsize[i][1])<=FILTER['max_length'] and \
+		FILTER['min_size']<=float(piclength)<=FILTER['max_size'] and (not picupload[i] in FILTER['banned_uploader']):
+			PICLIST.append({'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''})
+			PICLIST[-1]['index']=i+(pagenum-1)*8
+			fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
+			PICLIST[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
+			PICLIST[-1]['full']=parse_fullsize(PICLIST[-1]['referpage'])
+			PICLIST[-1]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
+			PICLIST[-1]['width']=picsize[i][0]#图宽
+			PICLIST[-1]['height']=picsize[i][1]#图高
+			PICLIST[-1]['length']=piclength
+			PICLIST[-1]['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
 	nextpage=re.findall('title="下一页" href="(.+)" style=',content)#下一页
-	if (nextpage==[]):#最后一页
+	if nextpage==[] or up_to_date:#最后一页或已把更加新的处理完
 		return None
 	else:
 		return HOMEURL+nextpage[0]
@@ -234,13 +253,59 @@ def write_config(sec,key,val):
 	cf.set(sec, key,val)
 	cf.write(open(os.getcwdu()+opath.sep+'config.ini', "w"))
 
+def read_timestamp(workingdir,ratio):
+	'''
+	Found earlist updated ratio
+	'''
+	global LASTUPDATE
+	filename = workingdir+opath.sep+'.roamepast'
+	if opath.exists(filename):
+		f=open(filename,'r')
+		for line in f:
+			lst=line.split(',')
+			if lst[0] == str(ratio):
+				LASTUPDATE=long((lst[1][-1]=='\n' and lst[1][:-1] or lst[1]).strip())#这个ratio的更新时间
+		f.close()
+		return True
+	else:
+		LASTUPDATE=0
+		return False
+	
+		
+def write_timestamp(working_dir,ratio,projname):	
+	filename = working_dir+opath.sep+'.roamepast'
+	f=open(filename,'w')#覆盖写入
+	f.write(projname+',0\n')
+	for i in range(len(ratio)):
+		f.write(ratio[i]+','+str(long(time.time())))
+	f.flush()
+	f.close()
+
+def load_filter(filtername):
+	global FILTER
+	cf=ConfigParser.ConfigParser()
+	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	FILTER={'max_length':2147483647,'max_width':2147483647,'min_length':0,'min_width':0,\
+		'max_size':2147483647,'min_size':0,'banned_uploader':[]}
+	for o in FILTER:
+		if cf.has_option(filtername, o):
+			val=cf.get(filtername, o)
+			if val!='':
+				if o=='banned_uploader':
+					FILTER[o]=val.decode('gbk').encode('utf-8').split('|')
+				else:
+					FILTER[o]=float(val)
+	
 def init_config():
 	'''
 	First run, initialize config.ini
 	'''
 	filename = os.getcwdu()+opath.sep+'config.ini'
 	f=file(filename,'w')
-	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\ndir_name = 2\ndir_path = \nname = hyouka\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1|7\nmax_length = \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = ')
+	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
+	\ndir_name = 2\ndir_path = \nname = hyouka\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
+	\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1|7\
+	\nmax_length = 	\nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \n')
 	f.flush()
 	f.close() 
 
@@ -255,7 +320,7 @@ def init_proxy():
 		opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
 		urllib2.install_opener(opener)
 		
-def load_remote_piclist(nextpage,firstpagenum,projfile_path):
+def load_remote_piclist(nextpage,firstpagenum,workingdir,ratiolist):
 	'''
 	Remote PICLIST parsing
 	'''
@@ -263,13 +328,15 @@ def load_remote_piclist(nextpage,firstpagenum,projfile_path):
 	#页面处理并得到所有图片URL，位于全局变量PICLIST中
 	pagenum=1
 	for j in range(len(nextpage)):
+		if read_timestamp(workingdir,ratiolist[j])==True:
+			print fmttime()+'Read time-stamp info from file.'
 		while(nextpage[j]!=None and pagenum<=firstpagenum):
 			print '%sPage parsing started at %s' % (fmttime(),nextpage[j])
 			nextpage[j]=parse_pagelist(nextpage[j],pagenum)
 			pagenum+=1
 			#print PICLIST
 	#保存到文件
-	file=open(projfile_path,'w')
+	file=open(workingdir+opath.sep+'.roameproject','w')
 	for i in range(len(PICLIST)):
 		file.write(str(PICLIST[i]['index'])+','+PICLIST[i]['thumb']+','+PICLIST[i]['referpage']+','+PICLIST[i]['full']+','\
 				+str(PICLIST[i]['height'])+','+str(PICLIST[i]['width'])+','+str(PICLIST[i]['length'])+','\
@@ -283,7 +350,7 @@ def load_local_piclist(projfile_path):
 	global PICLIST
 	file=open(projfile_path,'r')
 	for line in file:
-		list=line.split(',')
+		list=(line[-1]=='\n' and line[:-1] or line).split(',')
 		PICLIST.append({'index':int(list[0]),'thumb':list[1],'referpage':list[2],'full':list[3],'height':int(list[4]),\
 					'width':int(list[5]),'length':float(list[6]),'format':list[7]})
 	file.close()
@@ -308,15 +375,19 @@ def main():
 	else:
 		firstpagenum=int(firstpagenum)
 	projname=read_config('download','name')
-	global PICLIST
+	filtername=read_config('download','filter')
+	load_filter(filtername)
+	ratiolist=read_config(filtername,'ratio').split('|')
+	global PICLIST,FILTER,LASTUPDATE
 	PICLIST=[]
 	nextpage=[]
+	
 	###################开始预处理
 	#决定首页
 	if projname=='' or 0<projname<20:#today模式
 		print_c('没有指定名称,按照快速筛选(built_in)选项下载')
 		nextpage.append(HOMEURL+'/today/index'+BUILT_IN_SUFFIX[int(read_config('download','built_in'))]+'.html')
-		namelist=[time.strftime('%Y-%m-%d %H-%M-%S',time.localtime()),'','']
+		namelist=[time.strftime('%Y-%m-%d %H-%M',time.localtime()),'','']
 		dir_name=0#only this one
 	else:#正常模式OR散图模式
 		if projname=='misc':#散图模式
@@ -334,10 +405,8 @@ def main():
 			else:
 				entry=entry[0][0]
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
-		filtername=read_config('download','filter')
-		#处理比例过滤器
-		ratiolist=read_config(filtername,'ratio').split('|')
-		for r in range(len(ratiolist)):#依次构造
+		#处理比例过滤器,依次构造
+		for r in range(len(ratiolist)):
 			nextpage.append(HOMEURL+entry+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html')
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
@@ -358,7 +427,7 @@ def main():
 		load_local_piclist(projfile_path)
 		print fmttime()+'Load download progress from file. (Got '+str(len(PICLIST))+'p)'
 	else:
-		load_remote_piclist(nextpage,firstpagenum,projfile_path)
+		load_remote_piclist(nextpage,firstpagenum,working_dir,ratiolist)
 		print fmttime()+'Parse finished. (Got '+str(len(PICLIST))+'p)'
 	print fmttime()+'Download started.'
 	#图片下载
@@ -381,6 +450,7 @@ def main():
 			fileHandle.close()
 	print '\n'+fmttime()+'Download finished.\n'+str(len(PICLIST))+' pictures saved under \"'+working_dir
 	os.remove(working_dir+opath.sep+'.roameproject')
+	write_timestamp(working_dir,ratiolist,projname)
 	
 def search():
 	'''
@@ -408,7 +478,7 @@ def search():
 			offset+=1
 	return'''
 	#询问输入
-	input=raw_input('Input your keyword:')
+	input=raw_input(normstr('输入关键字: '))
 	if sys.platform=='win32':
 		input=input.decode('gb2312')
 	else:
@@ -424,7 +494,7 @@ def search():
 				print normstr((str(count)+'.'+list[i][1]+'('+list[i][2]+')').decode('utf-8','ignore'))
 			else:
 				print normstr((str(count)+'.'+list[i][1]).decode('utf-8','ignore'))
-	print str(count)+' result(s) found.'
+	print_c('找到'+str(count)+'个结果喵~ ＞▽＜ ')
 	if count > 0:
 		#try:
 		input=int(raw_input('> '))
@@ -460,6 +530,7 @@ def update():
 	Online update
 	'''
 	newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
+	notification=urlget("https://raw.github.com/fffonion/RoameBot/master/notification.txt")
 	if newver!=__version__:
 		print_c('花现新版本：'+newver)
 		if opath.split(sys.argv[0])[1].find('py')==-1:#is exe
@@ -473,7 +544,7 @@ def update():
 		fileHandle=open(filename,'wb')
 		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
 		fileHandle.close()
-		print_c('\n更新到了版本：'+newver)
+		print_c('\n更新到了版本：'+newver+'\n[注意事项]\n'+notification)
 	else:
 		print_c('已经是最新版本啦更新控：'+__version__)
 		
@@ -485,8 +556,9 @@ if __name__ == '__main__':
 		#重设默认编码
 		reload(sys)
 		sys.setdefaultencoding('utf-8')
-		#菜单
 		print_c('「ロアメボット。」'+__version__+'  ·ω·）ノ')
+		#if len(sys.argv)==1:
+		#菜单
 		while input !='5':
 			print_c('1.搜索\n2.快速筛选\n3.继续上次任务\n4.更新\n5.退出\n')
 			input=raw_input('> ')
@@ -500,12 +572,13 @@ if __name__ == '__main__':
 				update()
 			elif input!='5':
 				print_c('按错了吧亲╭(╯3╰)╮\n')
+			
 	except Exception,ex:
-		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在roamebot.log中')
-		f=open(os.getcwdu()+opath.sep+'romaebot.log','a')
+		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
+		f=open(os.getcwdu()+opath.sep+LOGPATH,'a')
 		f.write(fmttime()+'Stopped.\n')
 		traceback.print_exc(file=f)
-		#traceback.print_exc()
+		traceback.print_exc()
 		f.flush()
 		f.close()
 if sys.platform=='win32':
