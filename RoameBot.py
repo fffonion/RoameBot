@@ -494,7 +494,7 @@ def search():
 				print normstr((str(count)+'.'+list[i][1]+'('+list[i][2]+')').decode('utf-8','ignore'))
 			else:
 				print normstr((str(count)+'.'+list[i][1]).decode('utf-8','ignore'))
-	print_c('找到'+str(count)+'个结果喵~ ＞▽＜ ')
+	print_c('找到'+str(count)+'个结果 ㄟ( ▔, ▔ )ㄏ')
 	if count > 0:
 		#try:
 		input=int(raw_input('> '))
@@ -532,7 +532,7 @@ def update():
 	newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
 	notification=urlget("https://raw.github.com/fffonion/RoameBot/master/notification.txt")
 	if newver!=__version__:
-		print_c('花现新版本：'+newver)
+		print_c('花现新版本Σ( ° △ °|||):'+newver)
 		if opath.split(sys.argv[0])[1].find('py')==-1:#is exe
 			ext='.exe'
 			print_c('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
@@ -571,10 +571,10 @@ if __name__ == '__main__':
 			elif input=='4':
 				update()
 			elif input!='5':
-				print_c('按错了吧亲╭(╯3╰)╮\n')
+				print_c('按错了吧亲∑(っ °Д °;)\n')
 			
 	except Exception,ex:
-		print_c('啊咧，出错了( ⊙ o ⊙ )~ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
+		print_c('啊咧，出错了_(:з」∠)_ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
 		f=open(os.getcwdu()+opath.sep+LOGPATH,'a')
 		f.write(fmttime()+'Stopped.\n')
 		traceback.print_exc(file=f)
