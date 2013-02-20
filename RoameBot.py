@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.6'
+__version__ = '1.61'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -258,6 +258,7 @@ def read_timestamp(workingdir,ratio):
 	Found earlist updated ratio
 	'''
 	global LASTUPDATE
+	LASTUPDATE=0
 	filename = workingdir+opath.sep+'.roamepast'
 	if opath.exists(filename):
 		f=open(filename,'r')
@@ -268,7 +269,6 @@ def read_timestamp(workingdir,ratio):
 		f.close()
 		return True
 	else:
-		LASTUPDATE=0
 		return False
 	
 		
