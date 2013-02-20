@@ -1,4 +1,5 @@
 #路游动漫社区爬虫
+###这是一个批量下载路游动漫壁纸的爬虫，并可按图片长宽、大小、上传者ID、上传时间进行过滤
 python脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
  - BUG提交请在issues中附带日志（roamebot.log）
  - 更新日志[在这里~](https://github.com/fffonion/RoameBot/blob/master/History.md)
@@ -82,7 +83,6 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 * 9：等宽图片
 * 可以使用|分割多个比例，比如2|3匹配所有16:10和16:9
 
-以下过滤器不可用
 ####max_length
 指定最大长度
 ####max_width
@@ -95,6 +95,8 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 指定最大文件大小
 ####min_size
 指定最小文件大小
+####banned_uploader
+指定屏蔽上传者ID，| 分割
 
 ##授权
 [GPLv2授权](http://opensource.org/licenses/gpl-2.0.php)
