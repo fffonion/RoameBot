@@ -11,5 +11,8 @@
 
 关于config.ini的完整说明请见：https://github.com/fffonion/RoameBot/blob/master/Readme.md
 
+图文说明在这里：
+http://www.gn00.com/thread-220277-1-1.html
+
 ·ω·）ノ	fffonion@gmail.com
 2013-2-16

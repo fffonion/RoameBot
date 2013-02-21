@@ -3,7 +3,7 @@
 python脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
  - BUG提交请在issues中附带日志（roamebot.log）
  - 更新日志[在这里~](https://github.com/fffonion/RoameBot/blob/master/History.md)
- - 图文并茂的介绍www[在这里_(:зJ∠)_](http://www.gn00.com/thread-220277-1-1.html)
+ - 图文并茂的介绍www[在这里_(:зJ∠)_ ](http://www.gn00.com/thread-220277-1-1.html)
  - 更新后出现no option错误的请删除原来的config.ini
  
 ##PS
