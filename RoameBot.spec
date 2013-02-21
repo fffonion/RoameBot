@@ -13,4 +13,4 @@ exe = EXE(pyz,
           debug=False,
           strip=None,
           upx=True,
-          console=True , icon='ROAME_246342_92A26899_s.ico')
+          console=True , icon='31608233_p2.ico')
