@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.61'
+__version__ = '1.62'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -145,7 +145,10 @@ def parse_albumname(url):
 	#no jp exp :<title>阿倍野挢魔法商店街 - 英文名:Magical Shopping Arcade Abenobashi - 路游动漫图片壁纸网</title>
 	if albumname==[]:
 		albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
-	return albumname[0]
+	albumname_legal=[]
+	for i in range(len(albumname[0])):
+		albumname_legal.append(albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' '))
+	return albumname_legal
 
 def parse_entry(url):
 	'''
