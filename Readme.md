@@ -7,8 +7,8 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
  - 更新后出现no option错误的请删除原来的config.ini
  
 ##PS
-路游社区对图片下载会话作了限制，因此下载是单线程单任务进行的。
-
+路游社区对图片下载会话作了限制，因此无法实现多线程。但从2.0版本开始本爬虫具有了多任务下载的能力。
+旧版点这里[(﹁ ﹁ )σ](https://github.com/fffonion/RoameBot/tree/1.6)
 ##使用说明
 你也可以参见快速入门[Readme.txt](https://github.com/fffonion/RoameBot/blob/master/Readme.txt)
 ###1.使用“搜索”
