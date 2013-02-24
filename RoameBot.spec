@@ -1,6 +1,6 @@
 # -*- mode: python -*-
 a = Analysis(['ROAMEbot.py'],
-             pathex=['D:\\Dev\\Python\\Workspace\\RoameBot\\1.x'],
+             pathex=['D:\\Dev\\Python\\Workspace\\RoameBot\\2.x'],
              hiddenimports=[],
              hookspath=None)
 pyz = PYZ(a.pure)
