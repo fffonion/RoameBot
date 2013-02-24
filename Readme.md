@@ -1,5 +1,5 @@
 #路游动漫社区爬虫
-###这是一个批量下载路游动漫壁纸的爬虫，并可按图片长宽、大小、上传者ID、上传时间进行过滤
+###这是一个批量多任务下载路游动漫壁纸的爬虫，并可按图片长宽、大小、上传者ID、上传时间进行过滤
 python脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
  - BUG提交请在issues中附带日志（roamebot.log）
  - 更新日志[在这里~](https://github.com/fffonion/RoameBot/blob/master/History.md)
@@ -7,8 +7,8 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
  - 更新后出现no option错误的请删除原来的config.ini
  
 ##PS
-路游社区对图片下载会话作了限制，因此下载是单线程单任务进行的。
-
+路游社区对图片下载会话作了限制，因此无法实现多线程。但从2.0版本开始本爬虫具有了多任务下载的能力。
+旧版点这里[(﹁ ﹁ )σ](https://github.com/fffonion/RoameBot/tree/1.6)
 ##使用说明
 你也可以参见快速入门[Readme.txt](https://github.com/fffonion/RoameBot/blob/master/Readme.txt)
 ###1.使用“搜索”
