@@ -214,7 +214,7 @@ class reportthread(threading.Thread):
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
 			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s%s" % (livethread,THREADS,\
-				PICQUEUE.qsize()-downcount,downcount+PICQUEUE.qsize()+5,downloadsize/1024,queuesize/1024,\
+				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+5,downloadsize/1024,queuesize/1024,\
 				(downloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
 			lastdownsize=downloadsize
 			time.sleep(sleeptime)
