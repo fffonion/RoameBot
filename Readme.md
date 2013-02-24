@@ -10,10 +10,16 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 路游社区对图片下载会话作了限制，因此下载是单线程单任务进行的。
 
 ##使用说明
-你也可以参见快速入门Readme.txt
-###1.使用内置搜索
+你也可以参见快速入门[Readme.txt](https://github.com/fffonion/RoameBot/blob/master/Readme.txt)
+###1.使用“搜索”
 在界面选择1即可，支持中英文搜索，支持正则表达式，并按默认设置下载
-###2.配置文件config.ini说明
+###2.使用“快速筛选”
+在界面选择2，按照根据<http://www.roame.net/today>页的快速筛选选项，以及“未分类画集”，“未分类散图”进行快速选择
+###3.使用“继续上次任务”
+在界面选择3；你可以
+ - 恢复上次已中断的任务（直接输入3即可）
+ - 检查以前下载的番组有无新壁纸发布，并下载新壁纸（这需要读取上次目录下的.roamepast文件，须确保保存目录dir_path未变化）
+###4.配置文件config.ini说明
 ####[download]块
 ***
 ####skip_exist
