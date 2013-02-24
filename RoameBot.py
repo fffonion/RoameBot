@@ -3,7 +3,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '1.62'
+__version__ = '1.63'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket
 PICLIST=[]
@@ -300,19 +300,38 @@ def load_filter(filtername):
 				else:
 					FILTER[o]=float(val)
 	
-def init_config():
+def first_run():
 	'''
-	First run, initialize config.ini
+	First run, initialize config.ini, show readme
 	'''
 	filename = os.getcwdu()+opath.sep+'config.ini'
 	f=file(filename,'w')
 	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
 	\ndir_name = 2\ndir_path = \nname = hyouka\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
-	\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n[filter_0]\nratio = 1|7\
+	\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n\n[filter_0]\nratio = 1|7\
 	\nmax_length = 	\nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \n')
 	f.flush()
-	f.close() 
+	f.close()
+	print_c('''【首次运行】
+直接按照菜单项输入数字即可。
+“继续上次任务”选项，可以用来：
+1.恢复上次已中断的任务（直接输入3即可）
+2.检查以前下载的番组有无新壁纸发布，并下载新壁纸（这需要读取上次目录下的.roamepast文件，须确保保存目录dir_path未变化）。
 
+默认仅会下载壁纸尺寸和长尺寸的图片。如要下载其他尺寸，请编辑config.ini中的ratio为0或其他值。
+可以用 | 分割指定多个值。
+
+- 根据官方帖子，对普通用户进行分时段受限，凌晨5点速度最快，晚间21点速度最慢(http://www.roame.net/forum/office/policy)
+- 完整说明请见：https://github.com/fffonion/RoameBot/blob/master/Readme.md
+- 图文说明在这里：http://www.gn00.com/thread-220277-1-1.html
+
+·ω·）ノ	fffonion@gmail.com
+2013-2-24
+
+按任意键继续……
+	''')
+	input=raw_input('')
+	
 def init_proxy():
 	'''
 	Install proxy opener
@@ -535,8 +554,8 @@ def update():
 	'''
 	Online update
 	'''
-	newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
-	notification=urlget("https://raw.github.com/fffonion/RoameBot/master/notification.txt")
+	newver=urlget("https://raw.github.com/fffonion/RoameBot/1.6/version.txt")
+	notification=urlget("https://raw.github.com/fffonion/RoameBot/1.6/notification.txt")
 	if newver!=__version__:
 		print_c('花现新版本Σ( ° △ °|||):'+newver)
 		if opath.split(sys.argv[0])[1].find('py')==-1:#is exe
@@ -548,7 +567,7 @@ def update():
 			#filename=os.getcwdu()+opath.sep+'RoameBot.py'
 			filename=sys.argv[0]
 		fileHandle=open(filename,'wb')
-		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
+		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/1.6/RoameBot"+ext,True,3,8))
 		fileHandle.close()
 		print_c('\n更新到了版本：'+newver+'\n[注意事项]\n'+notification)
 	else:
@@ -557,7 +576,7 @@ def update():
 if __name__ == '__main__':  
 	try:
 		if not opath.exists(os.getcwdu()+opath.sep+'config.ini'):#first time
-			init_config()
+			first_run()
 		init_proxy()
 		#重设默认编码
 		reload(sys)
