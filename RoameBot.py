@@ -29,7 +29,19 @@ COOKIE=['uid=149448; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=CY%408Tl8Z9GjXgp6
 	'uid=149458; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb;',\
 	'uid=149459; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi;',\
 	'uid=149460; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH;']
-	
+def chunk_report(bytes_got, chunk_size, total_size,init_time):
+	'''
+	A hook for progress callback
+	'''
+	percent = float(bytes_got) / total_size
+	percent = round(percent*100, 2)
+	eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))#剩余时间
+	proglength=30#进度条长度
+	progressbar='#'*(proglength*int(percent)/100)+' '*(proglength-proglength*int(percent)/100)#计算进度条
+	backspace='\b'*140#同一行打印的退格
+	print "%4.1f%% [%s]     %5d/%5dKB   %s ETA%s" % (percent,progressbar,bytes_got/1024,total_size/1024, eta,backspace),
+	if bytes_got >= total_size:#完成时
+		print backspace,	
 def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
 	'''
 	urllib2 download module
@@ -66,7 +78,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 			total_size = int(total_size.strip())
 			if total_size<=8843:#链接错误=-1或过期=8843
 				REPORTQUEUE.put(fmttime()+prompt+'Url expired or broken. Reparsing from referer page.')
-				content=urlget(parse_fullsize(referer),getimage,retries,chunk_size,downloaded,referer)
+				content=urlget(parse_fullsize(referer),getimage,retries,chunk_size,downloaded,referer,cookieid)
 			else:#正常下载
 				#用头信息直接判断是否已下载
 				if downloaded!=-1:
@@ -76,7 +88,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 						return 'NOT-SAME'
 				#初始化变量
 				bytes_got = 0
-				#init_time=time.time()
+				init_time=time.time()
 				#开始chunk read
 				while 1:
 					chunkrand=chunk_size*random.randint(800,1248)
@@ -85,11 +97,13 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 					bytes_got += len(chunk)
 					if not chunk:#完成
 						break
-					global THREAD_PROGRESS
-					THREAD_PROGRESS[cookieid-1][0]=bytes_got
-					THREAD_PROGRESS[cookieid-1][1]=total_size
-					THREAD_PROGRESS[cookieid-1][4]+=chunkrand
-					#chunk_report(bytes_got, chunk_size, total_size,init_time)
+					if cookieid!=-1:
+						global THREAD_PROGRESS
+						THREAD_PROGRESS[cookieid-1][0]=bytes_got
+						THREAD_PROGRESS[cookieid-1][1]=total_size
+						THREAD_PROGRESS[cookieid-1][4]+=chunkrand
+					else:#m不指定则是在在线更新
+						chunk_report(bytes_got, chunk_size, total_size,init_time)
 				#content=chunk_read(resp, chunk*1024,chunk_report)
 		else:#直接读取
 			content = resp.read()#.decode('utf-8')
@@ -105,7 +119,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 			elif  e.code>=400:#客户端错误或服务器错误
 				print 'URL broken. Re-parsing from referer page.'
 				src=parse_fullsize(referer)
-			return urlget(src,getimage,retries-1,chunk_size,downloaded,referer)
+			return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid)
 		else:
 				print 'Failed on '+src
 				return None
