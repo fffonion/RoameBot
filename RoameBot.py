@@ -1,9 +1,10 @@
 ﻿#!/usr/bin/env python
 # -*- coding:utf-8 -*-
+# A multitask downloader for roame.net
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.0.beta'
+__version__ = '2.0'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random
 PICQUEUE=Queue.Queue()
@@ -154,8 +155,16 @@ class getimgthread(threading.Thread):
 		self.propmt=THREAD_NAME[self.id-1]+': '
 		global THREAD_PROGRESS
 		THREAD_PROGRESS[self.id-1]=[0]*5
+		
+	def tprint(self,str):
+		global REPORTQUEUE
+		if THREADS==1:
+			REPORTQUEUE.put(str)
+		else:
+			print(str)
+			
 	def run(self):
-		global REPORTQUEUE,THREAD_PROGRESS
+		global THREAD_PROGRESS
 		REPORTQUEUE.put(fmttime()+self.propmt+'Started.')
 		while not PICQUEUE.empty():
 			self.src=PICQUEUE.get()
@@ -163,15 +172,14 @@ class getimgthread(threading.Thread):
 			filename=self.workingdir+opath.sep+basename
 			#urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
 			if opath.exists(filename) and self.skip_exist=='1':#存在则跳过
-					REPORTQUEUE.put(fmttime()+self.propmt+'Skip '+basename+': Exists.'+' '*10)
-					THREAD_PROGRESS[self.id-1][3]+=1
+					self.tprint(fmttime()+self.propmt+'Skip '+basename+': Exists.'+' '*10)
 			elif opath.exists(filename) and self.skip_exist=='2' and \
 			urlget(self.src['full'],True,self.retries,self.chunk_size,opath.getsize(filename),\
 				self.src['referpage'],self.id-1)=='SAME':
-					REPORTQUEUE.put(fmttime()+self.propmt+'Skip '+basename+': Same size.'+' '*5)
+					self.tprint(fmttime()+self.propmt+'Skip '+basename+': Same size.'+' '*5)
 					THREAD_PROGRESS[self.id-1][3]+=1
 			else:#不存在 或 2&&大小不符
-				REPORTQUEUE.put(fmttime()+self.propmt+'Start '+basename+'.')
+				self.tprint(fmttime()+self.propmt+'Start '+basename+'.')
 				#print '\b%sDownloading %3d/%3d images: %s ->' % (fmttime(),i+1,PICQUEUE.qsize(),basename)
 				#       |不知道为什么会空一格…所以加上退格…
 				#设置监视起始点
@@ -179,12 +187,12 @@ class getimgthread(threading.Thread):
 				#保存到文件
 				fileHandle=open(filename,'wb')
 				fileHandle.write(urlget(self.src['full'],True,self.retries,self.chunk_size,-1,\
-									self.src['referpage'],self.id-1))
+									self.src['referpage'],THREADS==1 and -1 or self.id-1))
 				fileHandle.close()
-				REPORTQUEUE.put(fmttime()+self.propmt+'Finish '+basename+'.')
+				self.tprint(fmttime()+self.propmt+'Finish '+basename+'.')
 				THREAD_PROGRESS[self.id-1][3]+=1
 		THREAD_PROGRESS[self.id-1][2]=-1#退出标识
-		REPORTQUEUE.put(fmttime()+self.propmt+'Exit~')
+		self.tprint(fmttime()+self.propmt+'Exit~')
 		
 class reportthread(threading.Thread):
 	def __init__(self,threadname='Reportter'):
@@ -193,7 +201,7 @@ class reportthread(threading.Thread):
 		#THREAD_PROGRESS=[[0,0,0,0]]*THREADS#已下载，总大小，开始时间
 		init_time=time.time()
 		backspace='\b'*140
-		flush=' '*65
+		flush=' '*67
 		livethread=THREADS
 		global REPORTQUEUE
 		lastdownsize=0
@@ -213,8 +221,8 @@ class reportthread(threading.Thread):
 					livethread-=1
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
-			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s%s" % (livethread,THREADS,\
-				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+5,downloadsize/1024,queuesize/1024,\
+			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s  %s" % (livethread,THREADS,\
+				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+livethread,downloadsize/1024,queuesize/1024,\
 				(downloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
 			lastdownsize=downloadsize
 			time.sleep(sleeptime)
@@ -386,7 +394,7 @@ def first_run():
 	filename = os.getcwdu()+opath.sep+'config.ini'
 	f=file(filename,'w')
 	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
-	\ndir_name = 2\ndir_path = \nname = hyouka\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
+	\ndir_name = 2\ndir_path = \nname = hyouka\nthreads = 3\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
 	\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n\n[filter_0]\nratio = 1|7\
 	\nmax_length = 	\nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \n')
 	f.flush()
@@ -475,6 +483,8 @@ def main():
 	dir_pref=read_config('download','dir_pref')
 	dir_suff=read_config('download','dir_suff')
 	#LOGPATH=read_config('download','logpath')
+	global THREADS
+	THREADS=int(read_config('download','threads'))
 	firstpagenum=read_config('download','first_page_num')
 	if firstpagenum=='':#未指定默认为无限制
 		firstpagenum=2147483647
@@ -535,7 +545,7 @@ def main():
 	else:
 		load_remote_picqueue(nextpage,firstpagenum,working_dir,ratiolist)
 		print fmttime()+'Parse finished. (Got '+str(PICQUEUE.qsize())+'p)'
-	print fmttime()+'Download started.'
+	print fmttime()+'Download started.'+(THREADS==1 and '(Single Thread)' or '('+str(THREADS)+' Threads)')
 	#图片下载
 	#time.sleep(GET_INTERVAL)#f*ck!!!
 	#(self,threadname,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
@@ -546,11 +556,13 @@ def main():
 			getimgthread('5',working_dir,skip_exist,retries,chunk,-1)]
 	for i in range(THREADS):
 		threadlist[i].start()
-	report=reportthread()
-	report.start()
+	if THREADS>1:
+		report=reportthread()
+		report.start()
 	for i in range(THREADS):
 		threadlist[i].join()
-	report.join()
+	if THREADS>1:
+		report.join()
 	print '\n'+fmttime()+'Download finished.\n'+str(PICQUEUE.qsize())+' pictures saved under \"'+working_dir
 	os.remove(working_dir+opath.sep+'.roameproject')
 	write_timestamp(working_dir,ratiolist,projname)
