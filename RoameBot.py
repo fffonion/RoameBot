@@ -158,7 +158,7 @@ class getimgthread(threading.Thread):
 		
 	def tprint(self,str):
 		global REPORTQUEUE
-		if THREADS==1:
+		if THREADS>1:
 			REPORTQUEUE.put(str)
 		else:
 			print(str)
