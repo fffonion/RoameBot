@@ -141,7 +141,7 @@ def fmttime():
 	'''
 	Return time like [2013-02-13 16:23:21]
 	'''
-	return '['+time.strftime('%Y-%m-%d %X',time.localtime())+'] '
+	return '\b\b['+time.strftime('%Y-%m-%d %X',time.localtime())+'] '
 
 class getimgthread(threading.Thread):
 	def __init__(self,threadname,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
@@ -198,7 +198,8 @@ class reportthread(threading.Thread):
 	def __init__(self,threadname='Reportter'):
 		threading.Thread.__init__(self, name=threadname)
 	def run(self):
-		#THREAD_PROGRESS=[[0,0,0,0]]*THREADS#已下载，总大小，开始时间
+		#THREAD_PROGRESS=[[0,0,0,0]]*THREADS
+		#已下载，总大小，开始时间，总下载量，总下载大小
 		init_time=time.time()
 		backspace='\b'*140
 		flush=' '*67
@@ -209,6 +210,7 @@ class reportthread(threading.Thread):
 		while livethread>0:
 			downcount=0
 			queuesize=0
+			totaldownloadsize=0
 			downloadsize=0
 			while not REPORTQUEUE.empty():
 				print(flush+backspace+REPORTQUEUE.get())
@@ -216,15 +218,16 @@ class reportthread(threading.Thread):
 			for i in range(THREADS):
 				downcount+=THREAD_PROGRESS[i][3]
 				queuesize+=THREAD_PROGRESS[i][1]
-				downloadsize+=THREAD_PROGRESS[i][4]
+				downloadsize+=THREAD_PROGRESS[i][0]
+				totaldownloadsize+=THREAD_PROGRESS[i][4]
 				if THREAD_PROGRESS[i][2]==-1:
 					livethread-=1
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
 			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s  %s" % (livethread,THREADS,\
 				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+livethread,downloadsize/1024,queuesize/1024,\
-				(downloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
-			lastdownsize=downloadsize
+				(totaldownloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
+			lastdownsize=totaldownloadsize
 			time.sleep(sleeptime)
 def parse_albumname(url):
 	'''
@@ -564,7 +567,7 @@ def main():
 		threadlist[i].join()
 	if THREADS>1:
 		report.join()
-	print '\n'+fmttime()+'Download finished.\n'+str(PICQUEUE.qsize())+' pictures saved under \"'+working_dir
+	print fmttime()+'Download finished.\n'+str(PICQUEUE.qsize())+' pictures saved under \"'+working_dir
 	os.remove(working_dir+opath.sep+'.roameproject')
 	write_timestamp(working_dir,ratiolist,projname)
 	
