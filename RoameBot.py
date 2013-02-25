@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.0'
+__version__ = '2.1'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random
 PICQUEUE=Queue.Queue()
@@ -198,7 +198,7 @@ class reportthread(threading.Thread):
 	def __init__(self,threadname='Reportter'):
 		threading.Thread.__init__(self, name=threadname)
 	def run(self):
-		#THREAD_PROGRESS=[[0,0,0,0]]*THREADS
+		#THREAD_PROGRESS=[[0,0,0,0,0]]*THREADS
 		#已下载，总大小，开始时间，总下载量，总下载大小
 		init_time=time.time()
 		backspace='\b'*140
@@ -501,7 +501,7 @@ def main():
 	global PICQUEUE,FILTER,LASTUPDATE
 	PICQUEUE=Queue.Queue()
 	nextpage=[]
-	
+	totaldowncount=0
 	###################开始预处理
 	#决定首页
 	if projname=='' or 0<projname<20:#today模式
@@ -567,7 +567,9 @@ def main():
 		threadlist[i].join()
 	if THREADS>1:
 		report.join()
-	print fmttime()+'Download finished.\n'+str(PICQUEUE.qsize())+' pictures saved under \"'+working_dir
+	for i in range(THREADS):
+		totaldowncount+=THREAD_PROGRESS[i][3]
+	print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures saved under \"'+working_dir)
 	os.remove(working_dir+opath.sep+'.roameproject')
 	write_timestamp(working_dir,ratiolist,projname)
 	
