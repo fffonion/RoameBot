@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.1'
+__version__ = '2.11'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random
 PICQUEUE=Queue.Queue()
@@ -134,7 +134,7 @@ def print_c(str):
 
 def normstr(str,errors='ignore'):
 	if sys.platform=='win32':
-		return str.encode('gbk',errors)
+		return str.encode('cp936',errors)
 	else:
 		return str.encode('utf-8',errors)
 def fmttime():
@@ -511,8 +511,7 @@ def main():
 		dir_name=0#only this one
 	else:#正常模式OR散图模式
 		if projname=='misc':#散图模式
-			print_c('输入散图的年月，如201301，最早为200604:')
-			yyyymm=raw_input()
+			yyyymm=raw_input(normstr('输入散图的年月，如201301，最早为200604:'))
 			namelist=[(yyyymm[:4]+'年'+yyyymm[4:6]+'月 散图').decode('utf-8'),yyyymm,'']
 			print namelist[0]
 			projname='/misc/'+yyyymm
@@ -620,8 +619,10 @@ def search():
 	print_c('找到'+str(count)+'个结果 ㄟ( ▔, ▔ )ㄏ')
 	if count > 0:
 		#try:
-		input=int(raw_input('> '))
-		if 0<input<count+1:
+		input=raw_input('> ')
+		if input=='' or input=='0':
+			print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+		elif 0<int(input)<count+1:
 			write_config('download','name',urllist[int(input)-1])
 			main()
 		else:
@@ -704,6 +705,4 @@ if __name__ == '__main__':
 		traceback.print_exc()
 		f.flush()
 		f.close()
-if sys.platform=='win32':
-	print_c("按任意键退出亲~")
-	os.system('pause>nul'.decode('utf-8'))
+a=raw_input(normstr('按任意键退出亲~'))
