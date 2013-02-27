@@ -38,7 +38,7 @@ def mkcookie():
 	cnt=len(UNAMEPW[0])/8
 	for i in range(cnt):
 		uname=b64.decodestring(UNAMEPW[0][i*8:(i+1)*8])
-		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i])
+		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i]+';')
 		
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	
@@ -576,7 +576,6 @@ def main():
 			getimgthread('10',working_dir,skip_exist,retries,chunk,-1)]
 	random.shuffle(threadlist)
 	for i in range(THREADS):
-		print threadlist[i]
 		threadlist[i].start()
 	if THREADS>1:
 		report=reportthread()
