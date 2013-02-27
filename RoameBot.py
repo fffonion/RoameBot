@@ -587,7 +587,7 @@ def main():
 		report.join()
 	for i in range(THREADS):
 		totaldowncount+=THREAD_PROGRESS[i][3]
-	print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures saved under \"'+working_dir)
+	print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures saved under '+working_dir)
 	os.remove(working_dir+opath.sep+'.roameproject')
 	write_timestamp(working_dir,ratiolist,projname)
 	
