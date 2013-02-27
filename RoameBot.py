@@ -4,9 +4,9 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.11'
+__version__ = '2.12'
 
-import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random
+import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
 REPORTQUEUE=Queue.Queue()
 FILTER={}
@@ -19,18 +19,29 @@ RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth',
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
 				'-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
 				'-hotest-monthlyscore','-others-latest','-others-random']
-THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic']
+THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube']
 GET_INTERVAL=0.1
-THREADS=5
+THREADS=10
 
 THREAD_PROGRESS=[[0,0,0,0,0]]*THREADS#已下载，总大小，开始时间，总下载量，总下载大小
 LOGPATH='roamebot.log'
-COOKIE=['uid=149448; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC;',\
-	'uid=149449; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9;',\
-	'uid=149458; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb;',\
-	'uid=149459; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi;',\
-	'uid=149460; upw=a3119b10b8cb23e19053e99b82bb4ea4; cmd=JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH;']
+COOKIE=[]
+
+def mkcookie():
+	UNAMEPW=['MTQ5NDQ4MTQ5NDQ5MTQ5NDU4MTQ5NDU5MTQ5NDYwMTQ5NTQ0MTQ5NTQ1MTQ5NTQ2MTQ5NTQ3MTQ5NTQ4','YTMxMTliMTBiOGNiMjNlMTkwNTNlOTliODJiYjRlYTQ=']
+	UCMDSTR=['CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC','JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9',
+	'JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH',\
+	'Cb31mI90szSyi4Vhhy%40z8UF1ov4XbjWhZ','C081U9vrfuYtSBIIlnHhb%40JVZyVXjfKlf','Fcnfqfk150YuPlf03FvXjmcFQN8UNbas',\
+	'Cms14PaqKfj36a60o0u4a2uqyrTZBhB0X','JngqIdjYmr5TqNWJKhI6L2SWaXyec4UBT']
+	global COOKIE
+	COOKIE=[]
+	cnt=len(UNAMEPW[0])/8
+	for i in range(cnt):
+		uname=b64.decodestring(UNAMEPW[0][i*8:(i+1)*8])
+		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i])
+		
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
+	
 	'''
 	A hook for progress callback
 	'''
@@ -224,6 +235,7 @@ class reportthread(threading.Thread):
 					livethread-=1
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
+			#print THREAD_PROGRESS
 			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s  %s" % (livethread,THREADS,\
 				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+livethread,downloadsize/1024,queuesize/1024,\
 				(totaldownloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
@@ -513,7 +525,7 @@ def main():
 		if projname=='misc':#散图模式
 			yyyymm=raw_input(normstr('输入散图的年月，如201301，最早为200604:'))
 			namelist=[(yyyymm[:4]+'年'+yyyymm[4:6]+'月 散图').decode('utf-8'),yyyymm,'']
-			print namelist[0]
+			#print namelist[0]
 			projname='/misc/'+yyyymm
 			entry='/index'+projname+'/images'
 		else:#正常模式
@@ -556,8 +568,15 @@ def main():
 			getimgthread('2',working_dir,skip_exist,retries,chunk,-1),\
 			getimgthread('3',working_dir,skip_exist,retries,chunk,-1),\
 			getimgthread('4',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('5',working_dir,skip_exist,retries,chunk,-1)]
+			getimgthread('5',working_dir,skip_exist,retries,chunk,-1),\
+			getimgthread('6',working_dir,skip_exist,retries,chunk,-1),\
+			getimgthread('7',working_dir,skip_exist,retries,chunk,-1),\
+			getimgthread('8',working_dir,skip_exist,retries,chunk,-1),\
+			getimgthread('9',working_dir,skip_exist,retries,chunk,-1),\
+			getimgthread('10',working_dir,skip_exist,retries,chunk,-1)]
+	random.shuffle(threadlist)
 	for i in range(THREADS):
+		print threadlist[i]
 		threadlist[i].start()
 	if THREADS>1:
 		report=reportthread()
@@ -683,6 +702,7 @@ if __name__ == '__main__':
 		print_c('「ロアメボット。」'+__version__+'  ·ω·）ノ')
 		#if len(sys.argv)==1:
 		#菜单
+		mkcookie()
 		while input !='5':
 			print_c('1.搜索\n2.快速筛选\n3.继续上次任务\n4.更新\n5.退出\n')
 			input=raw_input('> ')
