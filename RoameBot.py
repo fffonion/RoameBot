@@ -38,7 +38,7 @@ def mkcookie():
 	cnt=len(UNAMEPW[0])/8
 	for i in range(cnt):
 		uname=b64.decodestring(UNAMEPW[0][i*8:(i+1)*8])
-		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i])
+		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i]+';')
 		
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	
@@ -231,16 +231,17 @@ class reportthread(threading.Thread):
 				queuesize+=THREAD_PROGRESS[i][1]
 				downloadsize+=THREAD_PROGRESS[i][0]
 				totaldownloadsize+=THREAD_PROGRESS[i][4]
-				if THREAD_PROGRESS[i][2]==-1:
+				if THREAD_PROGRESS[i][2]==-1 or THREAD_PROGRESS[i][2]==0:
 					livethread-=1
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
-			#print THREAD_PROGRESS
 			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s  %s" % (livethread,THREADS,\
 				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+livethread,downloadsize/1024,queuesize/1024,\
 				(totaldownloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
 			lastdownsize=totaldownloadsize
 			time.sleep(sleeptime)
+			#if livethread==0:
+			#	time.sleep(sleeptime)
 def parse_albumname(url):
 	'''
 	Return albumname TUPLE: 0=CHN, 1=ENG, 2=JPN
@@ -523,7 +524,7 @@ def main():
 		dir_name=0#only this one
 	else:#正常模式OR散图模式
 		if projname=='misc':#散图模式
-			yyyymm=raw_input(normstr('输入散图的年月，如201301，最早为200604:'))
+			yyyymm=raw_input(normstr('输入散图的年月，如201301，最早为200604: '))
 			namelist=[(yyyymm[:4]+'年'+yyyymm[4:6]+'月 散图').decode('utf-8'),yyyymm,'']
 			#print namelist[0]
 			projname='/misc/'+yyyymm
@@ -576,7 +577,6 @@ def main():
 			getimgthread('10',working_dir,skip_exist,retries,chunk,-1)]
 	random.shuffle(threadlist)
 	for i in range(THREADS):
-		print threadlist[i]
 		threadlist[i].start()
 	if THREADS>1:
 		report=reportthread()
