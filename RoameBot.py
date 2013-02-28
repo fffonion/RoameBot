@@ -287,7 +287,10 @@ def parse_latest():
 	print_c('最新上传('+str(len(entries))+')：')
 	for i in range(len(entries)):
 		print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸',' (')+updatetime[i]+' 更新'+deltanum[i]+'张)')
-	inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')) or '-1')
+	try:
+		inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')) or '-1')
+	except ValueError:
+		print_c('输数字啊亲(⊙_⊙)')
 	if 0<inp<=len(entries)+1:write_config('download','name',entries[inp-1][0])
 		
 def parse_pagelist(url,pagenum,mode=0):
@@ -538,8 +541,11 @@ def main():
 		else:#正常模式
 			namelist=parse_albumname(HOMEURL+'/index/'+projname)
 			entry=parse_entry(HOMEURL+'/index/'+projname)
-			if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1][0]
-			else:entry=entry[0][0]
+			try	:
+				if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1][0]
+				else:entry=entry[0][0]
+			except ValueError:
+				print_c('要输入数字哟~')
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		#处理比例过滤器,依次构造
 		for r in range(len(ratiolist)):
@@ -633,13 +639,15 @@ def search():
 				print normstr((str(count)+'.'+INDEXLIST[i][1]).decode('utf-8','ignore'))
 	print_c('找到'+str(count)+'个结果 ㄟ( ▔, ▔ )ㄏ')
 	if count > 0:
-		#try:
-		input=raw_input('> ') or '0'
-		if input=='0':print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
-		elif 0<int(input)<count+1:
-			write_config('download','name',urllist[int(input)-1])
-			main()
-		else:print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+		try:
+			input=raw_input('> ') or '0'
+			if input=='0':print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+			elif 0<int(input)<count+1:
+				write_config('download','name',urllist[int(input)-1])
+				main()
+			else:	raise ValueError
+		except ValueError:
+			print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
 	
 def quick_filter():
 	'''
@@ -657,7 +665,7 @@ def quick_filter():
 		elif input==18:
 			write_config('download','name','misc')
 		else:
-			raise Exception('', '')
+			raise ValueError
 		main()
 	except ValueError:#熊孩子没有输入数字
 		print_c('[なに？]σ(· ·?) \n')
