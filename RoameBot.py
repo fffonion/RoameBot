@@ -579,7 +579,7 @@ def main():
 	random.shuffle(threadsystem)
 	threadlist+=threadsystem
 	#防止越界
-	if THREADS<len(threadlist):
+	if THREADS>len(threadlist):
 		THREADS=len(threadlist)
 	for i in range(THREADS):
 		threadlist[i].start()
