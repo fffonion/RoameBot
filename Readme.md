@@ -6,9 +6,13 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
  - 图文并茂的介绍www[在这里_(:зJ∠)_ ](http://www.gn00.com/thread-220277-1-1.html)
  - 更新后出现no option错误的请删除原来的config.ini
  
-##PS
+##小技巧
+###1.关于多任务下载
 路游社区对图片下载会话作了限制，因此无法实现多线程。但从2.0版本开始本爬虫具有了多任务下载的能力。
 内置账号因为大家都在用所以可能会有问题，你可以添加自己的账号，[教程请点这里](https://github.com/fffonion/RoameBot/wiki/Add-custom-cookie)
+###2.关于增量更新已下载的壁纸
+只要保证保存目录(dir_path)相同，RoameBot就会智能地选择下载未下载的壁纸，跳过已有的
+
 
 旧版点这里[(﹁ ﹁ )σ](https://github.com/fffonion/RoameBot/tree/1.6)
 ##使用说明
@@ -16,13 +20,15 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 ###1.使用“搜索”
 在界面选择1即可，支持中英文搜索，支持正则表达式，并按默认设置下载
 ###2.使用“快速筛选”
-在界面选择2，按照根据<http://www.roame.net/today>页的快速筛选选项，以及“未分类画集”，“未分类散图”进行快速选择
-###3.使用“继续上次任务”
+在界面选择4，按照根据<http://www.roame.net/today>页的快速筛选选项，以及“未分类画集”，“未分类散图”进行快速选择
+###3.使用’最新上传”
+在界面选择3，从首页抓取最新上传的壁纸信息，可以直接下载/更新
+###4.使用“继续上次任务”
 在界面选择3；你可以
  - 恢复上次已中断的任务（直接输入3即可）
  - 检查以前下载的番组有无新壁纸发布，并下载新壁纸（这需要读取上次目录下的.roamepast文件，须确保保存目录dir_path未变化）
 
-###4.配置文件config.ini说明
+###5.配置文件config.ini说明
 ####[download]块
 ***
 ####skip_exist
@@ -49,7 +55,7 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 ####name
 抓取url，对于形如<http://www.roame.net/index/little-busters/images>只需输入little-busters；留空则使用built_in选项
 ####built_in
-根据<http://www.roame.net/today>页的快速筛选选项。
+根据<http://www.roame.net/today>页的快速筛选选项；也可以通过主界面菜单的“4”选择
 * 0：所有最新
 * 1：最新16:9
 * 2：最新16:10
@@ -109,6 +115,11 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 指定最小文件大小
 ####banned_uploader
 指定屏蔽上传者ID，| 分割
+
+####[cookie]Cookie串块
+***
+####var
+cookie的内容，用|分割，添加教程见(https://github.com/fffonion/RoameBot/wiki/Add-custom-cookie)
 
 ##授权
 [GPLv2授权](http://opensource.org/licenses/gpl-2.0.php)

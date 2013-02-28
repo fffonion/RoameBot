@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.13+'
+__version__ = '2.14'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -274,7 +274,34 @@ def parse_entry(url):
 					re.findall('0px">(.+)$',allentries[i])[0]])
 		print_c('入口'+str(i+1)+': '+entries[-1][2].decode('utf-8')+' ('+str(entries[-1][1])+'p)')
 	return entries
-
+def parse_latest():
+	'''
+	Parse latest pic on the homepage, write to config.ini
+	'''
+	content=urlget(HOMEURL)
+	#<div class="imagesr"><span>4小时前（2013-02-28 09:44）</span></div>
+    #<div class="imagescatname"><a href="http://www.roame.net/index/hatsune-miku-kagamine/images">初音未来/镜音双子图片壁纸</a></div>
+	#:28px;margin-left:4px">共更新了<b>18</b>张，点此查看更多 ...</a>
+	allblocks=re.findall('em">(.*?) class="it',content,re.DOTALL)
+	updatetime=[]
+	entries=[]
+	deltanum=[]
+	for i in range(len(allblocks)):
+		testblock=re.findall('imagesr"><span>(.+)（',allblocks[i])
+		if testblock==[]:
+			continue
+		else:
+			updatetime+=testblock
+			entries+=re.findall('imagescatname"><a href="http://www.roame.net/index/(.+)/[a-z0-9-]+">(.+)</a',allblocks[i])
+			testdelta=re.findall(':28px;margin-left:4px">共更新了<b>(\d+)</b>张',allblocks[i])
+			deltanum.append(testdelta==[] and str(len(re.findall('<a title=',allblocks[i]))) or testdelta[0])
+	print_c('最新上传('+str(len(entries))+')：')
+	for i in range(len(entries)):
+		print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸',' (')+updatetime[i]+' 更新了'+deltanum[i]+'张)')
+	inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')))
+	if 0<inp<=len(entries)+1:
+		write_config('download','name',entries[inp-1][0])
+		
 def parse_pagelist(url,pagenum,mode=0):
 	'''
 	Return pic list, elem is dict
@@ -432,7 +459,7 @@ def first_run():
 - 完整说明请见：https://github.com/fffonion/RoameBot/blob/master/Readme.md
 - 图文说明在这里：http://www.gn00.com/thread-220277-1-1.html
 
-·ω·）ノ	fffonion@gmail.com
+·ω·）ノ	mail: xijinping@yooooo.us	blog: http://yooooo.us
 2013-2-28
 
 按任意键继续……
@@ -705,18 +732,21 @@ if __name__ == '__main__':
 		#if len(sys.argv)==1:
 		#菜单
 		mkcookie()
-		while input !='5':
-			print_c('1.搜索\n2.快速筛选\n3.继续上次任务\n4.更新\n5.退出\n')
+		while input !='6':
+			print_c('1.搜索\n2.最新上传\n3.继续上次任务\n4.快速筛选\n5.更新\n6.退出\n')
 			input=raw_input('> ')
 			if input=='3':
 				main()
 			elif input=='1':
 				search()
 			elif input=='2':
-				quick_filter()
+				parse_latest()
+				main()
 			elif input=='4':
+				quick_filter()
+			elif input=='5':
 				update()
-			elif input!='5':
+			elif input!='6':
 				print_c('按错了吧亲∑(っ °Д °;)\n')
 			
 	except Exception,ex:
