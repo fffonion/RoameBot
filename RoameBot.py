@@ -56,8 +56,7 @@ def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	progressbar='#'*(proglength*int(percent)/100)+' '*(proglength-proglength*int(percent)/100)#计算进度条
 	backspace='\b'*140#同一行打印的退格
 	print "%4.1f%% [%s]     %5d/%5dKB   %s ETA%s" % (percent,progressbar,bytes_got/1024,total_size/1024, eta,backspace),
-	if bytes_got >= total_size:#完成时
-		print backspace,	
+	if bytes_got >= total_size:print backspace,	#完成
 def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
 	'''
 	urllib2 download module
@@ -70,8 +69,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 		req = urllib2.Request(src)
 		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4')
 		#req.add_header('Referer', referer)
-		if cookieid!=-1:
-			req.add_header('Cookie', COOKIE[cookieid])
+		if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
 		#打开回复
 		resp = urllib2.urlopen(req)
 		#resp.info()
@@ -86,8 +84,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 				total_size=resp.info().getheader('Content-Length')
 				time.sleep(GET_INTERVAL*sleep_retry)#服务器太捉鸡……睡一觉
 				if resp.info().getheader('Content-Type').strip()=='text/html':
-					if sleep_retry>27:#最多睡三次
-						total_size='-1'#链接错误flag
+					if sleep_retry>27:total_size='-1'#最多睡三次链接错误flag
 					else:
 						REPORTQUEUE.put(fmttime()+prompt+'Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.')
 						sleep_retry*=3
@@ -98,10 +95,8 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 			else:#正常下载
 				#用头信息直接判断是否已下载
 				if downloaded!=-1:
-					if total_size==downloaded:
-						return 'SAME'
-					else:
-						return 'NOT-SAME'
+					if total_size==downloaded:return 'SAME'
+					else:return 'NOT-SAME'
 				#初始化变量
 				bytes_got = 0
 				init_time=time.time()
@@ -130,8 +125,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
  		if retries>0:#重试处理
 	 		#if isinstance(e.reason, socket.timeout):
 	 		print fmttime()+prompt+'Error['+str(e.code)+']',
-	 		if e.code==10060:#超时
-				print 'Connection timed out. Retrying '+str(retries)+' times.'
+	 		if e.code==10060:print 'Connection timed out. Retrying '+str(retries)+' times.'#超时
 			elif  e.code>=400:#客户端错误或服务器错误
 				print 'URL broken. Re-parsing from referer page.'
 				src=parse_fullsize(referer)
@@ -148,10 +142,8 @@ def print_c(str):
 	print(normstr(str.decode('utf-8')))
 
 def normstr(str,errors='ignore'):
-	if sys.platform=='win32':
-		return str.encode('cp936',errors)
-	else:
-		return str.encode('utf-8',errors)
+	if sys.platform=='win32':return str.encode('cp936',errors)
+	else:return str.encode('utf-8',errors)
 def fmttime():
 	'''
 	Return time like [2013-02-13 16:23:21]
@@ -173,10 +165,8 @@ class getimgthread(threading.Thread):
 		
 	def tprint(self,str):
 		global REPORTQUEUE
-		if THREADS>1:
-			REPORTQUEUE.put(str)
-		else:
-			print(str)
+		if THREADS>1:REPORTQUEUE.put(str)
+		else:print(str)
 
 	def run(self):
 		global THREAD_PROGRESS
@@ -253,8 +243,7 @@ def parse_albumname(url):
 	#exp :<title>夏目友人帐 - 英文名:Natsume Yuujinchou, 日文名:夏目友人帳 - 路游动漫图片壁纸网</title>
 	albumname=re.findall('title>(.+) -.+:(.+),.+:(.+) -',content)
 	#no jp exp :<title>阿倍野挢魔法商店街 - 英文名:Magical Shopping Arcade Abenobashi - 路游动漫图片壁纸网</title>
-	if albumname==[]:
-		albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
+	if albumname==[]:albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
 	albumname_legal=[]
 	for i in range(len(albumname[0])):
 		albumname_legal.append(albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' '))
@@ -297,10 +286,9 @@ def parse_latest():
 			deltanum.append(testdelta==[] and str(len(re.findall('<a title=',allblocks[i]))) or testdelta[0])
 	print_c('最新上传('+str(len(entries))+')：')
 	for i in range(len(entries)):
-		print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸',' (')+updatetime[i]+' 更新了'+deltanum[i]+'张)')
-	inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')))
-	if 0<inp<=len(entries)+1:
-		write_config('download','name',entries[inp-1][0])
+		print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸',' (')+updatetime[i]+' 更新'+deltanum[i]+'张)')
+	inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')) or '-1')
+	if 0<inp<=len(entries)+1:write_config('download','name',entries[inp-1][0])
 		
 def parse_pagelist(url,pagenum,mode=0):
 	'''
@@ -328,10 +316,8 @@ def parse_pagelist(url,pagenum,mode=0):
 				up_to_date=True
 				break
 		#图片文件长度
-		if(picinfo[i][-1]=='MB'):
-			piclength=float(picinfo[i][-2])*1024#float化防止变int
-		else:
-			piclength=picinfo[i][-2]
+		if(picinfo[i][-1]=='MB'):piclength=float(picinfo[i][-2])*1024#float化防止变int
+		else:piclength=picinfo[i][-2]
 		#测试filter
 		if FILTER['min_width']<=float(picsize[i][0])<=FILTER['max_width'] and \
 		FILTER['min_length']<=float(picsize[i][1])<=FILTER['max_length'] and \
@@ -348,10 +334,8 @@ def parse_pagelist(url,pagenum,mode=0):
 			picelem['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
 			PICQUEUE.put(picelem)
 	nextpage=re.findall('title="下一页" href="(.+)" style=',content)#下一页
-	if nextpage==[] or up_to_date:#最后一页或已把更加新的处理完
-		return None
-	else:
-		return HOMEURL+nextpage[0]
+	if nextpage==[] or up_to_date:return None#最后一页或已把更加新的处理完
+	else:return HOMEURL+nextpage[0]
 	
 def parse_fullsize(url):
 	'''
@@ -376,10 +360,8 @@ def read_config(sec,key):
 	cf=ConfigParser.ConfigParser()
 	cf.read(os.getcwdu()+opath.sep+'config.ini')
 	val=cf.get(sec, key)
-	if val=='':
-		return ''
-	else:
-		return val
+	if val=='':return ''
+	else:return val
 
 def write_config(sec,key,val):
 	'''
@@ -401,8 +383,7 @@ def read_timestamp(workingdir,ratio):
 		f=open(filename,'r')
 		for line in f:
 			lst=line.split(',')
-			if lst[0] == str(ratio):
-				LASTUPDATE=long((lst[1][-1]=='\n' and lst[1][:-1] or lst[1]).strip())#这个ratio的更新时间
+			if lst[0] == str(ratio):LASTUPDATE=long((lst[1][-1]=='\n' and lst[1][:-1] or lst[1]).strip())#这个ratio的更新时间
 		f.close()
 		return True
 	else:
@@ -428,10 +409,8 @@ def load_filter(filtername):
 		if cf.has_option(filtername, o):
 			val=cf.get(filtername, o)
 			if val!='':
-				if o=='banned_uploader':
-					FILTER[o]=val.decode('gbk').encode('utf-8').split('|')
-				else:
-					FILTER[o]=float(val)
+				if o=='banned_uploader':FILTER[o]=val.decode('gbk').encode('utf-8').split('|')
+				else:FILTER[o]=float(val)
 	
 def first_run():
 	'''
@@ -485,8 +464,7 @@ def load_remote_picqueue(nextpage,firstpagenum,workingdir,ratiolist):
 	#页面处理并得到所有图片URL，位于全局变量PICQUEUE中
 	pagenum=1
 	for j in range(len(nextpage)):#nextpage列表个数等于比例个数
-		if read_timestamp(workingdir,ratiolist[j])==True:
-			print fmttime()+'Read time-stamp info from file.'
+		if read_timestamp(workingdir,ratiolist[j])==True:print fmttime()+'Read time-stamp info from file.'
 		while(nextpage[j]!=None and pagenum<=firstpagenum):
 			print '%sPage parsing started at %s' % (fmttime(),nextpage[j])
 			nextpage[j]=parse_pagelist(nextpage[j],pagenum)
@@ -533,10 +511,8 @@ def main():
 	global THREADS
 	THREADS=int(read_config('download','threads'))
 	firstpagenum=read_config('download','first_page_num')
-	if firstpagenum=='':#未指定默认为无限制
-		firstpagenum=2147483647
-	else:
-		firstpagenum=int(firstpagenum)
+	if firstpagenum=='':firstpagenum=2147483647#未指定默认为无限制
+	else:firstpagenum=int(firstpagenum)
 	projname=read_config('download','name')
 	filtername=read_config('download','filter')
 	load_filter(filtername)
@@ -562,10 +538,8 @@ def main():
 		else:#正常模式
 			namelist=parse_albumname(HOMEURL+'/index/'+projname)
 			entry=parse_entry(HOMEURL+'/index/'+projname)
-			if len(entry)>1:
-				entry=entry[int(raw_input('> '))-1][0]
-			else:
-				entry=entry[0][0]
+			if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1][0]
+			else:entry=entry[0][0]
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		#处理比例过滤器,依次构造
 		for r in range(len(ratiolist)):
@@ -603,19 +577,14 @@ def main():
 	random.shuffle(threadsystem)
 	threadlist+=threadsystem
 	#防止越界
-	if THREADS>len(threadlist):
-		THREADS=len(threadlist)
-	for i in range(THREADS):
-		threadlist[i].start()
+	if THREADS>len(threadlist):THREADS=len(threadlist)
+	for i in range(THREADS):threadlist[i].start()
 	if THREADS>1:
 		report=reportthread()
 		report.start()
-	for i in range(THREADS):
-		threadlist[i].join()
-	if THREADS>1:
-		report.join()
-	for i in range(THREADS):
-		totaldowncount+=THREAD_PROGRESS[i][3]
+	for i in range(THREADS):threadlist[i].join()
+	if THREADS>1:report.join()
+	for i in range(THREADS):totaldowncount+=THREAD_PROGRESS[i][3]
 	print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures saved under '+working_dir)
 	os.remove(working_dir+opath.sep+'.roameproject')
 	write_timestamp(working_dir,ratiolist,projname)
@@ -649,10 +618,8 @@ def search():
 		return'''
 	#询问输入
 	input=raw_input(normstr('输入关键字: '))
-	if sys.platform=='win32':
-		input=input.decode('gb2312')
-	else:
-		input=input.decode('utf-8')
+	if sys.platform=='win32':input=input.decode('gb2312')
+	else:input=input.decode('utf-8')
 	count=0
 	#顺序查找并分割打印
 	for i in range(len(INDEXLIST)):
@@ -667,14 +634,12 @@ def search():
 	print_c('找到'+str(count)+'个结果 ㄟ( ▔, ▔ )ㄏ')
 	if count > 0:
 		#try:
-		input=raw_input('> ')
-		if input=='' or input=='0':
-			print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+		input=raw_input('> ') or '0'
+		if input=='0':print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
 		elif 0<int(input)<count+1:
 			write_config('download','name',urllist[int(input)-1])
 			main()
-		else:
-			print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+		else:print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
 	
 def quick_filter():
 	'''
@@ -735,19 +700,14 @@ if __name__ == '__main__':
 		while input !='6':
 			print_c('1.搜索\n2.最新上传\n3.继续上次任务\n4.快速筛选\n5.更新\n6.退出\n')
 			input=raw_input('> ')
-			if input=='3':
-				main()
-			elif input=='1':
-				search()
+			if input=='3':main()
+			elif input=='1':search()
 			elif input=='2':
 				parse_latest()
 				main()
-			elif input=='4':
-				quick_filter()
-			elif input=='5':
-				update()
-			elif input!='6':
-				print_c('按错了吧亲∑(っ °Д °;)\n')
+			elif input=='4':quick_filter()
+			elif input=='5':update()
+			elif input!='6':print_c('按错了吧亲∑(っ °Д °;)\n')
 			
 	except Exception,ex:
 		print_c('啊咧，出错了_(:з」∠)_ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
