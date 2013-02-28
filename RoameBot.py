@@ -4,13 +4,14 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.12'
+__version__ = '2.13'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
 REPORTQUEUE=Queue.Queue()
 FILTER={}
 INDEXLIST=[]
+COOKIE=[]
 #INITURL='http://www.roame.net/index/hakuouki-shinsengumi-kitan'
 HOMEURL='http://www.roame.net'
 LASTUPDATE=0
@@ -21,25 +22,28 @@ BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','
 				'-hotest-monthlyscore','-others-latest','-others-random']
 THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube']
 GET_INTERVAL=0.1
-THREADS=10
-
+THREADS=25
+BUILTINUSER=5
 THREAD_PROGRESS=[[0,0,0,0,0]]*THREADS#已下载，总大小，开始时间，总下载量，总下载大小
 LOGPATH='roamebot.log'
-COOKIE=[]
 
 def mkcookie():
-	UNAMEPW=['MTQ5NDQ4MTQ5NDQ5MTQ5NDU4MTQ5NDU5MTQ5NDYwMTQ5NTQ0MTQ5NTQ1MTQ5NTQ2MTQ5NTQ3MTQ5NTQ4','YTMxMTliMTBiOGNiMjNlMTkwNTNlOTliODJiYjRlYTQ=']
+	#5个自定义用户，一个空用户，共六个系统用户
+	UNAMEPW=['MTQ5NDQ4MTQ5NDQ5MTQ5NDU4MTQ5NDU5MTQ5NDYw','YTMxMTliMTBiOGNiMjNlMTkwNTNlOTliODJiYjRlYTQ=']
 	UCMDSTR=['CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC','JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9',
-	'JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH',\
-	'Cb31mI90szSyi4Vhhy%40z8UF1ov4XbjWhZ','C081U9vrfuYtSBIIlnHhb%40JVZyVXjfKlf','Fcnfqfk150YuPlf03FvXjmcFQN8UNbas',\
-	'Cms14PaqKfj36a60o0u4a2uqyrTZBhB0X','JngqIdjYmr5TqNWJKhI6L2SWaXyec4UBT']
+	'JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH']
 	global COOKIE
-	COOKIE=[]
+	COOKIE=['']#空用户
 	cnt=len(UNAMEPW[0])/8
 	for i in range(cnt):
 		uname=b64.decodestring(UNAMEPW[0][i*8:(i+1)*8])
 		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i]+';')
-		
+	cf=ConfigParser.ConfigParser()
+	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	var=cf.get('cookie', 'var').split('|')
+	for i in range(len(var)):
+		COOKIE.append(var[i])
+
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	
 	'''
@@ -412,7 +416,7 @@ def first_run():
 	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
 	\ndir_name = 2\ndir_path = \nname = hyouka\nthreads = 3\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
 	\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n\n[filter_0]\nratio = 1|7\
-	\nmax_length = 	\nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \n')
+	\nmax_length = 	\nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \n\n[cookie]\nvar = ')
 	f.flush()
 	f.close()
 	print_c('''【首次运行】
@@ -424,13 +428,13 @@ def first_run():
 默认仅会下载壁纸尺寸和长尺寸的图片。如要下载其他尺寸，请编辑config.ini中的ratio为0或其他值。
 可以用 | 分割指定多个值。
 
-- 默认下载线程为3，可自行修改threads项，最大为5
+- 默认下载线程为3，可自行修改threads项，最大为5，请添加自己的用户以提高速度：https://github.com/fffonion/RoameBot/wiki/Add-custom-cookie
 - 根据官方帖子，普通用户下载凌晨5点最快，晚间21点最慢(http://www.roame.net/forum/office/policy)
 - 完整说明请见：https://github.com/fffonion/RoameBot/blob/master/Readme.md
 - 图文说明在这里：http://www.gn00.com/thread-220277-1-1.html
 
 ·ω·）ノ	fffonion@gmail.com
-2013-2-25
+2013-2-28
 
 按任意键继续……
 	''')
@@ -565,17 +569,18 @@ def main():
 	#图片下载
 	#time.sleep(GET_INTERVAL)#f*ck!!!
 	#(self,threadname,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
-	threadlist=[getimgthread('1',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('2',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('3',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('4',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('5',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('6',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('7',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('8',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('9',working_dir,skip_exist,retries,chunk,-1),\
-			getimgthread('10',working_dir,skip_exist,retries,chunk,-1)]
+	#优先使用空用户和自定义用户
+	threadempty=[getimgthread('0',working_dir,skip_exist,retries,chunk,-1),]
+	threadlist=[getimgthread(str(i+BUILTINUSER+1),working_dir,skip_exist,retries,chunk,-1) for i in range(len(COOKIE)-BUILTINUSER-1)]
 	random.shuffle(threadlist)
+	threadlist=threadempty+threadlist
+	#5个内置用户1~5
+	threadsystem=[getimgthread(str(i+1),working_dir,skip_exist,retries,chunk,-1) for i in range(BUILTINUSER)]
+	random.shuffle(threadsystem)
+	threadlist+=threadsystem
+	#防止越界
+	if THREADS<len(threadlist):
+		THREADS=len(threadlist)
 	for i in range(THREADS):
 		threadlist[i].start()
 	if THREADS>1:

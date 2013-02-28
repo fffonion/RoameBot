@@ -8,6 +8,7 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
  
 ##PS
 路游社区对图片下载会话作了限制，因此无法实现多线程。但从2.0版本开始本爬虫具有了多任务下载的能力。
+内置账号因为大家都在用所以可能会有问题，你可以添加自己的账号，[教程请点这里](https://github.com/fffonion/RoameBot/wiki/Add-custom-cookie)
 旧版点这里[(﹁ ﹁ )σ](https://github.com/fffonion/RoameBot/tree/1.6)
 ##使用说明
 你也可以参见快速入门[Readme.txt](https://github.com/fffonion/RoameBot/blob/master/Readme.txt)
