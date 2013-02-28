@@ -1,5 +1,6 @@
 #路游动漫社区爬虫
-##本版本不再受支持，请见master分支
+##本版本不再受支持，请见[master分支](https://github.com/fffonion/RoameBot)
+***
 ###这是一个批量下载路游动漫壁纸的爬虫，并可按图片长宽、大小、上传者ID、上传时间进行过滤
 python脚本跨平台。windows用户可[直接下载.exe](https://github.com/fffonion/RoameBot/raw/master/RoameBot.exe)
  - BUG提交请在issues中附带日志（roamebot.log）
