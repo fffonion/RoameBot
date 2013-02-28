@@ -10,11 +10,13 @@ import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,thr
 PICQUEUE=Queue.Queue()
 REPORTQUEUE=Queue.Queue()
 FILTER={}
-INDEXLIST=[]
 COOKIE=[]
 #INITURL='http://www.roame.net/index/hakuouki-shinsengumi-kitan'
 HOMEURL='http://www.roame.net'
 LASTUPDATE=0
+#缓存变量
+LATESTCONTENT=''
+INDEXLIST=[]
 #常量
 RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth','-weqh']
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
@@ -267,11 +269,12 @@ def parse_latest():
 	'''
 	Parse latest pic on the homepage, write to config.ini
 	'''
-	content=urlget(HOMEURL)
+	global LATESTCONTENT
+	LATESTCONTENT=LATESTCONTENT=='' and urlget(HOMEURL) or LATESTCONTENT
 	#<div class="imagesr"><span>4小时前（2013-02-28 09:44）</span></div>
     #<div class="imagescatname"><a href="http://www.roame.net/index/hatsune-miku-kagamine/images">初音未来/镜音双子图片壁纸</a></div>
 	#:28px;margin-left:4px">共更新了<b>18</b>张，点此查看更多 ...</a>
-	allblocks=re.findall('em">(.*?) class="it',content,re.DOTALL)
+	allblocks=re.findall('em">(.*?) class="it',LATESTCONTENT,re.DOTALL)
 	updatetime=[]
 	entries=[]
 	deltanum=[]
@@ -288,10 +291,13 @@ def parse_latest():
 	for i in range(len(entries)):
 		print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸',' (')+updatetime[i]+' 更新'+deltanum[i]+'张)')
 	try:
-		inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')) or '-1')
+		inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')))
+		if 0<inp<=len(entries)+1:write_config('download','name',entries[inp-1][0])
 	except ValueError:
-		print_c('输数字啊亲(⊙_⊙)')
-	if 0<inp<=len(entries)+1:write_config('download','name',entries[inp-1][0])
+		print_c('输数字啊亲(⊙_⊙)\n')
+	else:
+		main()
+	
 		
 def parse_pagelist(url,pagenum,mode=0):
 	'''
@@ -545,7 +551,7 @@ def main():
 				if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1][0]
 				else:entry=entry[0][0]
 			except ValueError:
-				print_c('要输入数字哟~')
+				print_c('要输入数字哟~\n')
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		#处理比例过滤器,依次构造
 		for r in range(len(ratiolist)):
@@ -641,8 +647,7 @@ def search():
 	if count > 0:
 		try:
 			input=raw_input('> ') or '0'
-			if input=='0':print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
-			elif 0<int(input)<count+1:
+			if 0<int(input)<count+1:
 				write_config('download','name',urllist[int(input)-1])
 				main()
 			else:	raise ValueError
@@ -710,9 +715,7 @@ if __name__ == '__main__':
 			input=raw_input('> ')
 			if input=='3':main()
 			elif input=='1':search()
-			elif input=='2':
-				parse_latest()
-				main()
+			elif input=='2':parse_latest()
 			elif input=='4':quick_filter()
 			elif input=='5':update()
 			elif input!='6':print_c('按错了吧亲∑(っ °Д °;)\n')
