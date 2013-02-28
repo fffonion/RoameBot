@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.13'
+__version__ = '2.13+'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -20,7 +20,7 @@ RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth',
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
 				'-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
 				'-hotest-monthlyscore','-others-latest','-others-random']
-THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube']
+THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube','Kernel','Lichee','Medlar','N','Orange']
 GET_INTERVAL=0.1
 THREADS=25
 BUILTINUSER=5
@@ -34,15 +34,15 @@ def mkcookie():
 	'JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH']
 	global COOKIE
 	COOKIE=['']#空用户
-	cnt=len(UNAMEPW[0])/8
-	for i in range(cnt):
-		uname=b64.decodestring(UNAMEPW[0][i*8:(i+1)*8])
-		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i]+';')
 	cf=ConfigParser.ConfigParser()
 	cf.read(os.getcwdu()+opath.sep+'config.ini')
 	var=cf.get('cookie', 'var').split('|')
 	for i in range(len(var)):
 		COOKIE.append(var[i])
+	cnt=len(UNAMEPW[0])/8
+	for i in range(cnt):
+		uname=b64.decodestring(UNAMEPW[0][i*8:(i+1)*8])
+		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i]+';')
 
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	
@@ -93,7 +93,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 						sleep_retry*=3
 			total_size = int(total_size.strip())
 			if total_size<=8843:#链接错误=-1或过期=8843
-				REPORTQUEUE.put(fmttime()+prompt+'Url expired or broken. Reparsing from referer page.')
+				REPORTQUEUE.put(fmttime()+prompt+'Url expired or broken. Reparsing from referer.')
 				content=urlget(parse_fullsize(referer),getimage,retries,chunk_size,downloaded,referer,cookieid)
 			else:#正常下载
 				#用头信息直接判断是否已下载
@@ -177,7 +177,7 @@ class getimgthread(threading.Thread):
 			REPORTQUEUE.put(str)
 		else:
 			print(str)
-			
+
 	def run(self):
 		global THREAD_PROGRESS
 		REPORTQUEUE.put(fmttime()+self.propmt+'Started.')
@@ -235,7 +235,7 @@ class reportthread(threading.Thread):
 				queuesize+=THREAD_PROGRESS[i][1]
 				downloadsize+=THREAD_PROGRESS[i][0]
 				totaldownloadsize+=THREAD_PROGRESS[i][4]
-				if THREAD_PROGRESS[i][2]==-1 or THREAD_PROGRESS[i][2]==0:
+				if THREAD_PROGRESS[i][2]==-1:
 					livethread-=1
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
@@ -244,8 +244,7 @@ class reportthread(threading.Thread):
 				(totaldownloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
 			lastdownsize=totaldownloadsize
 			time.sleep(sleeptime)
-			#if livethread==0:
-			#	time.sleep(sleeptime)
+			
 def parse_albumname(url):
 	'''
 	Return albumname TUPLE: 0=CHN, 1=ENG, 2=JPN
@@ -570,12 +569,10 @@ def main():
 	#time.sleep(GET_INTERVAL)#f*ck!!!
 	#(self,threadname,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
 	#优先使用空用户和自定义用户
-	threadempty=[getimgthread('0',working_dir,skip_exist,retries,chunk,-1),]
-	threadlist=[getimgthread(str(i+BUILTINUSER+1),working_dir,skip_exist,retries,chunk,-1) for i in range(len(COOKIE)-BUILTINUSER-1)]
+	threadlist=[getimgthread(str(i+1),working_dir,skip_exist,retries,chunk,-1) for i in range(len(COOKIE)-BUILTINUSER)]
 	random.shuffle(threadlist)
-	threadlist=threadempty+threadlist
 	#5个内置用户1~5
-	threadsystem=[getimgthread(str(i+1),working_dir,skip_exist,retries,chunk,-1) for i in range(BUILTINUSER)]
+	threadsystem=[getimgthread(str(i+len(COOKIE)-BUILTINUSER+1),working_dir,skip_exist,retries,chunk,-1) for i in range(BUILTINUSER)]
 	random.shuffle(threadsystem)
 	threadlist+=threadsystem
 	#防止越界
