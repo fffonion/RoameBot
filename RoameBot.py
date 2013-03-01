@@ -22,7 +22,7 @@ RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth',
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
 				'-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
 				'-hotest-monthlyscore','-others-latest','-others-random']
-THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube','Kernel','Lichee','Medlar','N','Orange']
+THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube','Kernel','Lichee','Medlar','Nothing','Orange','Papaya','Qiviut','R','S','T','U','V','W','X','Y','Z']
 GET_INTERVAL=0.1
 THREADS=25
 BUILTINUSER=15
@@ -32,7 +32,7 @@ LOGPATH='roamebot.log'
 def mkcookie():
 	#10个系统用户，1个空用户
 	unamepw=['MTQ5NDQ4MTQ5NDQ5MTQ5NDU4MTQ5NDU5MTQ5NDYwMTQ5NTQ0MTQ5NTQ1MTQ5NTQ2MTQ5NTQ3MTQ5NTQ4MTQ5NTc2MTQ5NTc3MTQ5NTc4MTQ5NTc5MTQ5NTk4','YTMxMTliMTBiOGNiMjNlMTkwNTNlOTliODJiYjRlYTQ=']
-	ucmdstr=['CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC','JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9','JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH','Cb31mI90szSyi4Vhhy%40z8UF1ov4XbjWhZ','C081U9vrfuYtSBIIlnHhb%40JVZyVXjfKlf','Fcnfqfk150YuPlf03FvXjmcFQN8UNbas','Cms14PaqKfj36a60o0u4a2uqyrTZBhB0X','JngqIdjYmr5TqNWJKhI6L2SWaXyec4UBT','JFiY%400vN%40Ti9sU7YPg6HZ8BgwhzbtZcZQ','JBX3j%40HaioijtW5eHPH3rpCPmuPUGSf','YJdQZCsozCfFI0yqebn0ZjQC3piok7N3Y','JrfvP3omCrhQrJnGlGDQoUWlWs3vnLaJ6','CnomrWQfYaaCK5jTButI9zscoSWCrw9Tb;']
+	ucmdstr=['CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC','JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9','JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH','Cb31mI90szSyi4Vhhy%40z8UF1ov4XbjWhZ','C081U9vrfuYtSBIIlnHhb%40JVZyVXjfKlf','Fcnfqfk150YuPlf03FvXjmcFQN8UNbas','Cms14PaqKfj36a60o0u4a2uqyrTZBhB0X','JngqIdjYmr5TqNWJKhI6L2SWaXyec4UBT','JFiY%400vN%40Ti9sU7YPg6HZ8BgwhzbtZcZQ','JBX3j%40HaioijtW5eHPH3rpCPmuPUGSf','YJdQZCsozCfFI0yqebn0ZjQC3piok7N3Y','JrfvP3omCrhQrJnGlGDQoUWlWs3vnLaJ6','CnomrWQfYaaCK5jTButI9zscoSWCrw9Tb']
 	global COOKIE
 	#COOKIE=['']#空用户
 	cf=ConfigParser.ConfigParser()
@@ -41,7 +41,7 @@ def mkcookie():
 	COOKIE=(var==[''] and var or ['']+var)
 	cnt=len(unamepw[0])/8
 	COOKIE+=['uid='+b64.decodestring(unamepw[0][i*8:(i+1)*8])+';upw='+b64.decodestring(unamepw[1])+';cmd='+ucmdstr[i]+';' for i in range(cnt)]
-	
+
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	
 	'''
