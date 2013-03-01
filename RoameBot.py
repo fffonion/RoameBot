@@ -25,27 +25,23 @@ BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','
 THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube','Kernel','Lichee','Medlar','N','Orange']
 GET_INTERVAL=0.1
 THREADS=25
-BUILTINUSER=5
+BUILTINUSER=15
 THREAD_PROGRESS=[[0,0,0,0,0]]*THREADS#已下载，总大小，开始时间，总下载量，总下载大小
 LOGPATH='roamebot.log'
 
 def mkcookie():
-	#5个自定义用户，一个空用户，共六个系统用户
-	UNAMEPW=['MTQ5NDQ4MTQ5NDQ5MTQ5NDU4MTQ5NDU5MTQ5NDYw','YTMxMTliMTBiOGNiMjNlMTkwNTNlOTliODJiYjRlYTQ=']
-	UCMDSTR=['CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC','JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9',
-	'JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH']
+	#10个系统用户，1个空用户
+	unamepw=['MTQ5NDQ4MTQ5NDQ5MTQ5NDU4MTQ5NDU5MTQ5NDYwMTQ5NTQ0MTQ5NTQ1MTQ5NTQ2MTQ5NTQ3MTQ5NTQ4MTQ5NTc2MTQ5NTc3MTQ5NTc4MTQ5NTc5MTQ5NTk4','YTMxMTliMTBiOGNiMjNlMTkwNTNlOTliODJiYjRlYTQ=']
+	ucmdstr=['CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC','JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9','JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','JuYHdgPPyJQsh59JjaIUWFfkiWPmvBepi','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH','Cb31mI90szSyi4Vhhy%40z8UF1ov4XbjWhZ','C081U9vrfuYtSBIIlnHhb%40JVZyVXjfKlf','Fcnfqfk150YuPlf03FvXjmcFQN8UNbas','Cms14PaqKfj36a60o0u4a2uqyrTZBhB0X','JngqIdjYmr5TqNWJKhI6L2SWaXyec4UBT','JFiY%400vN%40Ti9sU7YPg6HZ8BgwhzbtZcZQ','JBX3j%40HaioijtW5eHPH3rpCPmuPUGSf','YJdQZCsozCfFI0yqebn0ZjQC3piok7N3Y','JrfvP3omCrhQrJnGlGDQoUWlWs3vnLaJ6','CnomrWQfYaaCK5jTButI9zscoSWCrw9Tb;']
 	global COOKIE
-	COOKIE=['']#空用户
+	#COOKIE=['']#空用户
 	cf=ConfigParser.ConfigParser()
 	cf.read(os.getcwdu()+opath.sep+'config.ini')
 	var=cf.get('cookie', 'var').split('|')
-	for i in range(len(var)):
-		COOKIE.append(var[i])
-	cnt=len(UNAMEPW[0])/8
-	for i in range(cnt):
-		uname=b64.decodestring(UNAMEPW[0][i*8:(i+1)*8])
-		COOKIE.append('uid='+uname+';upw='+b64.decodestring(UNAMEPW[1])+';cmd='+UCMDSTR[i]+';')
-
+	COOKIE=(var==[''] and var or ['']+var)
+	cnt=len(unamepw[0])/8
+	COOKIE+=['uid='+b64.decodestring(unamepw[0][i*8:(i+1)*8])+';upw='+b64.decodestring(unamepw[1])+';cmd='+ucmdstr[i]+';' for i in range(cnt)]
+	
 def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	
 	'''
@@ -247,8 +243,7 @@ def parse_albumname(url):
 	#no jp exp :<title>阿倍野挢魔法商店街 - 英文名:Magical Shopping Arcade Abenobashi - 路游动漫图片壁纸网</title>
 	if albumname==[]:albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
 	albumname_legal=[]
-	for i in range(len(albumname[0])):
-		albumname_legal.append(albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' '))
+	albumname_legal+=[albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' ') for i in range(len(albumname[0]))]
 	return albumname_legal
 
 def parse_entry(url):
@@ -554,8 +549,7 @@ def main():
 				print_c('要输入数字哟~\n')
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		#处理比例过滤器,依次构造
-		for r in range(len(ratiolist)):
-			nextpage.append(HOMEURL+entry+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html')
+		nextpage+=[HOMEURL+entry+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html' for r in range(len(ratiolist))]
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
 	for i in range(3):
