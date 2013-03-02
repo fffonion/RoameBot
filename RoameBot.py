@@ -96,8 +96,10 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 			else:#正常下载
 				#用头信息直接判断是否已下载
 				if downloaded!=-1:
-					if total_size==downloaded:return 'SAME'
-					else:return 'NOT-SAME'
+					if total_size==downloaded:
+						return 'SAME'
+					else:
+						return 'NOT-SAME'
 				#初始化变量
 				bytes_got = 0
 				init_time=time.time()
@@ -177,7 +179,7 @@ class getimgthread(threading.Thread):
 
 	def run(self):
 		global THREAD_PROGRESS
-		self.report.put(fmttime()+self.propmt+'Started.')
+		self.tprint(fmttime()+self.propmt+'Started.')
 		while not PICQUEUE.empty():
 			self.src=PICQUEUE.get()
 			basename=re.findall('/([A-Za-z0-9._]+)$',self.src['full'])[0]#切割文件名
@@ -205,6 +207,7 @@ class getimgthread(threading.Thread):
 				THREAD_PROGRESS[self.id-1][3]+=1
 		THREAD_PROGRESS[self.id-1][2]=-1#退出标识
 		self.tprint(fmttime()+self.propmt+'Exit~')
+		
 class reportthread(threading.Thread):
 	def __init__(self,queue,threadname='Reportter'):
 		threading.Thread.__init__(self, name=threadname)
@@ -218,13 +221,18 @@ class reportthread(threading.Thread):
 		livethread=THREADS
 		lastdownsize=0
 		sleeptime=0.2
-		while livethread>0 or (not self.report.empty()):
+		while livethread>0:
 			downcount=0
 			queuesize=0
 			totaldownloadsize=0
 			downloadsize=0
-			while not self.report.empty():
-				print(flush+backspace+self.report.get())
+			#while not self.report.empty():
+			#	print(flush+backspace+self.report.get())
+			while True:
+				try:
+					print(flush+backspace+self.report.get(block=False))
+				except Queue.Empty:
+					break
 			livethread=len(COOKIE)
 			for i in range(len(COOKIE)):
 				downcount+=THREAD_PROGRESS[i][3]
@@ -240,6 +248,8 @@ class reportthread(threading.Thread):
 				(totaldownloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
 			lastdownsize=totaldownloadsize
 			time.sleep(sleeptime)
+
+
 def parse_albumname(url):
 	'''
 	Return albumname TUPLE: 0=CHN, 1=ENG, 2=JPN
@@ -477,16 +487,17 @@ def load_remote_picqueue(nextpage,firstpagenum,workingdir,ratiolist):
 	for j in range(len(nextpage)):#nextpage列表个数等于比例个数
 		if read_timestamp(workingdir,ratiolist[j])==True:print fmttime()+'Read time-stamp info from file.'
 		while(nextpage[j]!=None and pagenum<=firstpagenum):
-			print '%sPage parsing started at %s' % (fmttime(),nextpage[j])
+			print '%sPage parsing started at %s' % (fmttime(),nextpage[j]),
 			nextpage[j]=parse_pagelist(nextpage[j],pagenum)
+			print ' Finished.'
 			pagenum+=1
 	#保存到文件
 	file=open(workingdir+opath.sep+'.roameproject','w')
 	queindex=1
 	while queindex <= PICQUEUE.qsize():
 		#print queindex,PICQUEUE.qsize()
-		picelem=PICQUEUE.get()
-		PICQUEUE.put(picelem)
+		picelem=PICQUEUE.get_nowait()
+		PICQUEUE.pu(picelem)
 		file.write(str(picelem['index'])+','+picelem['thumb']+','+picelem['referpage']+','+picelem['full']+','\
 				+str(picelem['height'])+','+str(picelem['width'])+','+str(picelem['length'])+','\
 				+picelem['format']+'\n')
@@ -593,7 +604,10 @@ def main():
 	threadlist+=threadsystem
 	#防止越界
 	if THREADS>len(threadlist):THREADS=len(threadlist)
-	for i in range(THREADS):threadlist[i].start()
+	for i in range(THREADS):
+		global THREAD_PROGRESS
+		THREAD_PROGRESS[int(threadlist[i].name)-1][2]=-2
+		threadlist[i].start()
 	if THREADS>1:
 		report=reportthread(reportqueue)
 		report.start()
