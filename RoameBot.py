@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.15'
+__version__ = '2.16'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -67,7 +67,10 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 		else:print str
 	try:
 		#构造request
+		rrange=lambda a,b,c=1: str(c==1 and random.randrange(a,b) or float(random.randrange(a*c,b*c))/c)
 		req = urllib2.Request(src)
+		ua='Mozilla/'+rrange(4,7,10)+'.0 (Windows NT '+rrange(5,7)+'.'+rrange(0,3)+') AppleWebKit/'+rrange(535,538,10)+\
+		' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)
 		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.95 Safari/537.5')
 		#req.add_header('Referer', referer)
 		if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
@@ -277,6 +280,7 @@ def parse_entry(url):
 					re.findall('0px">(.+)$',allentries[i])[0]])
 		print_c('入口'+str(i+1)+': '+entries[-1][2].decode('utf-8')+' ('+str(entries[-1][1])+'p)')
 	return entries
+
 def parse_latest():
 	'''
 	Parse latest pic on the homepage, write to config.ini
@@ -320,6 +324,7 @@ def parse_pagelist(url,pagenum,mode=0):
 	today_mode=False
 	#pic_structure={'index':0,'thumb':'','full':'','width':0,'height':0,'length':0}
 	content=urlget(url)
+	print('Parsing...'+'\b'*10),
 	singlepic=re.findall('/h[23]>(.*?)<div',content,re.DOTALL)#singlepic 包含 thumb and full-size page url
 	#<div style="color:#456"><span style="color:#abc;font-size:10px">by</span> <u>EUREKASEVEN</u></div>
 	picupload=re.findall('font-size:10px">by</span> <u>(.+)</u>',content)
@@ -330,9 +335,13 @@ def parse_pagelist(url,pagenum,mode=0):
 		picinfo=re.findall('r:#789">([0-9.]+)([A-Z]+)</span',content)
 		today_mode=True
 	picsize=re.findall('<strong>(\d+)×(\d+)</strong>',content)
+	#初始化变量
+	fullpagethread=['']*8
+	fullurllist=['']*8
+	picelem=['']*8
 	#具体处理
 	for i in range(len(singlepic)):	
-		if not today_mode:
+		if not today_mode:#today模式没有时间
 			if LASTUPDATE>time.mktime(time.strptime(picdate[i],'%Y-%m-%d %H:%M')):#已到时间分割点
 				up_to_date=True
 				break
@@ -343,30 +352,42 @@ def parse_pagelist(url,pagenum,mode=0):
 		if FILTER['min_width']<=float(picsize[i][0])<=FILTER['max_width'] and \
 		FILTER['min_length']<=float(picsize[i][1])<=FILTER['max_length'] and \
 		FILTER['min_size']<=float(piclength)<=FILTER['max_size'] and (not picupload[i] in FILTER['banned_uploader']):
-			picelem={'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''}
-			picelem['index']=i+(pagenum-1)*8
+			picelem[i]={'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''}
+			picelem[i]['index']=i+(pagenum-1)*8
 			fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
-			picelem['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
-			picelem['full']=parse_fullsize(picelem['referpage'])
-			picelem['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
-			picelem['width']=picsize[i][0]#图宽
-			picelem['height']=picsize[i][1]#图高
-			picelem['length']=piclength
-			picelem['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
-			PICQUEUE.put(picelem)
+			picelem[i]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
+			#多线程抓取类启动
+			fullpagethread[i]=parse_fullsize(picelem[i]['referpage'],fullurllist,i)
+			fullpagethread[i].start()
+			#picelem[i]['full']=parse_fullsize(picelem[i]['referpage'])
+			picelem[i]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
+			picelem[i]['width']=picsize[i][0]#图宽
+			picelem[i]['height']=picsize[i][1]#图高
+			picelem[i]['length']=piclength
+			picelem[i]['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
+	#多线程抓取类同步
+	for i in range(len(singlepic)):
+		fullpagethread[i].join()
+	for i in range(len(singlepic)):
+		picelem[i]['full']=fullurllist[i]
+		PICQUEUE.put_nowait(picelem[i])
 	nextpage=re.findall('title="下一页" href="(.+)" style=',content)#下一页
 	if nextpage==[] or up_to_date:return None#最后一页或已把更加新的处理完
 	else:return HOMEURL+nextpage[0]
 	
-def parse_fullsize(url):
-	'''
-	Return image url
-	'''
-	content=urlget(url)
-	deeperpage=re.findall('darlnks">.+index.html.+href="(.*?)" style.+display:block',content,re.DOTALL)#goto download page
-	content=urlget(deeperpage[0])
-	picurl=re.findall('src="(.+)" style="background',content)
-	return picurl[0]
+class parse_fullsize(threading.Thread):
+	'''抓取原图url线程'''
+	def __init__(self,url,reslist,index):
+		threading.Thread.__init__(self, name='FullpageThread')
+		self.reslist=reslist
+		self.index=index
+		self.url=url
+	def run(self):
+		content=urlget(self.url)
+		deeperpage=re.findall('darlnks">.+index.html.+href="(.*?)" style.+display:block',content,re.DOTALL)#goto download page
+		content=urlget(deeperpage[0])
+		picurl=re.findall('src="(.+)" style="background',content)
+		self.reslist[self.index]=picurl[0]
 
 #def down_callback(saved,blocksize,total):
 #	x = 100.0 * saved * blocksize / total  
@@ -497,7 +518,7 @@ def load_remote_picqueue(nextpage,firstpagenum,workingdir,ratiolist):
 	while queindex <= PICQUEUE.qsize():
 		#print queindex,PICQUEUE.qsize()
 		picelem=PICQUEUE.get_nowait()
-		PICQUEUE.pu(picelem)
+		PICQUEUE.put(picelem)
 		file.write(str(picelem['index'])+','+picelem['thumb']+','+picelem['referpage']+','+picelem['full']+','\
 				+str(picelem['height'])+','+str(picelem['width'])+','+str(picelem['length'])+','\
 				+picelem['format']+'\n')
