@@ -4,11 +4,10 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.14'
+__version__ = '2.15'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
-REPORTQUEUE=Queue.Queue()
 FILTER={}
 COOKIE=[]
 #INITURL='http://www.roame.net/index/hakuouki-shinsengumi-kitan'
@@ -55,17 +54,21 @@ def chunk_report(bytes_got, chunk_size, total_size,init_time):
 	backspace='\b'*140#同一行打印的退格
 	print "%4.1f%% [%s]     %5d/%5dKB   %s ETA%s" % (percent,progressbar,bytes_got/1024,total_size/1024, eta,backspace),
 	if bytes_got >= total_size:print backspace,	#完成
-def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
+def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1,reportQ=None):
 	'''
 	urllib2 download module
 	'''
 	#print src
-	global REPORTQUEUE
-	prompt=THREAD_NAME[cookieid]+': '
+	if cookieid==-1:prompt=''
+	else:prompt=THREAD_NAME[cookieid]+': '
+	def report(str,report):
+		str=fmttime()+prompt+str
+		if reportQ!=None:reportQ.put(str)
+		else:print str
 	try:
 		#构造request
 		req = urllib2.Request(src)
-		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4')
+		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.95 Safari/537.5')
 		#req.add_header('Referer', referer)
 		if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
 		#打开回复
@@ -84,11 +87,11 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 				if resp.info().getheader('Content-Type').strip()=='text/html':
 					if sleep_retry>27:total_size='-1'#最多睡三次链接错误flag
 					else:
-						REPORTQUEUE.put(fmttime()+prompt+'Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.')
+						report('Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.',reportQ)
 						sleep_retry*=3
 			total_size = int(total_size.strip())
 			if total_size<=8843:#链接错误=-1或过期=8843
-				REPORTQUEUE.put(fmttime()+prompt+'Url expired or broken. Reparsing from referer.')
+				report('Url expired or broken. Reparsing from referer.',reportQ)
 				content=urlget(parse_fullsize(referer),getimage,retries,chunk_size,downloaded,referer,cookieid)
 			else:#正常下载
 				#用头信息直接判断是否已下载
@@ -106,31 +109,35 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 					bytes_got += len(chunk)
 					if not chunk:#完成
 						break
-					if cookieid!=-1:
+					if THREADS!=1:
 						global THREAD_PROGRESS
 						THREAD_PROGRESS[cookieid-1][0]=bytes_got
 						THREAD_PROGRESS[cookieid-1][1]=total_size
 						THREAD_PROGRESS[cookieid-1][4]+=chunkrand
-					else:#m不指定则是在在线更新
+					else:#THREADS=1则是在在线更新
 						chunk_report(bytes_got, chunk_size, total_size,init_time)
 				#content=chunk_read(resp, chunk*1024,chunk_report)
 		else:#直接读取
 			content = resp.read()#.decode('utf-8')
 		#返回上级
 		return content
-	except (urllib2.URLError,urllib2.HTTPError),e:#错误处理 
- 		print e.code
+	except urllib2.URLError,e:#错误处理 
  		if retries>0:#重试处理
-	 		#if isinstance(e.reason, socket.timeout):
-	 		print fmttime()+prompt+'Error['+str(e.code)+']',
-	 		if e.code==10060:print 'Connection timed out. Retrying '+str(retries)+' times.'#超时
-			elif  e.code>=400:#客户端错误或服务器错误
-				print 'URL broken. Re-parsing from referer page.'
-				src=parse_fullsize(referer)
-			return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid)
+			report('Connection timed out. Retrying '+str(retries)+' times.',reportQ)#超时
+			return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,reportQ)
 		else:
-				print 'Failed on '+src
+				report('Failed on '+src,reportQ)
 				return None
+	except urllib2.HTTPError,e:
+		if retries>0:#重试处理
+			if  e.code>=400:#客户端错误或服务器错误
+				report('URL broken. Re-parsing from referer page.',reportQ)
+				src=parse_fullsize(referer)
+				return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,report)
+		else:
+				report('Failed on '+src,reportQ)
+				return None
+	
 		
        
 def print_c(str):
@@ -149,7 +156,7 @@ def fmttime():
 	return '\b\b['+time.strftime('%Y-%m-%d %X',time.localtime())+'] '
 
 class getimgthread(threading.Thread):
-	def __init__(self,threadname,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
+	def __init__(self,threadname,queue,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
 		threading.Thread.__init__(self, name=threadname)
 		self.id=int(self.getName())
 		self.workingdir=workingdir
@@ -158,17 +165,19 @@ class getimgthread(threading.Thread):
 		self.chunk_size=chunk_size
 		self.downloaded=downloaded
 		self.propmt=THREAD_NAME[self.id-1]+': '
+		self.report=queue
 		global THREAD_PROGRESS
 		THREAD_PROGRESS[self.id-1]=[0]*5
 		
 	def tprint(self,str):
-		global REPORTQUEUE
-		if THREADS>1:REPORTQUEUE.put(str)
-		else:print(str)
+		if THREADS>1:
+			self.report.put(str)
+		else:
+			print(str)
 
 	def run(self):
 		global THREAD_PROGRESS
-		REPORTQUEUE.put(fmttime()+self.propmt+'Started.')
+		self.report.put(fmttime()+self.propmt+'Started.')
 		while not PICQUEUE.empty():
 			self.src=PICQUEUE.get()
 			basename=re.findall('/([A-Za-z0-9._]+)$',self.src['full'])[0]#切割文件名
@@ -178,7 +187,7 @@ class getimgthread(threading.Thread):
 					self.tprint(fmttime()+self.propmt+'Skip '+basename+': Exists.'+' '*10)
 			elif opath.exists(filename) and self.skip_exist=='2' and \
 			urlget(self.src['full'],True,self.retries,self.chunk_size,opath.getsize(filename),\
-				self.src['referpage'],self.id-1)=='SAME':
+				self.src['referpage'],self.id-1,self.report)=='SAME':
 					self.tprint(fmttime()+self.propmt+'Skip '+basename+': Same size.'+' '*5)
 					THREAD_PROGRESS[self.id-1][3]+=1
 			else:#不存在 或 2&&大小不符
@@ -190,16 +199,16 @@ class getimgthread(threading.Thread):
 				#保存到文件
 				fileHandle=open(filename,'wb')
 				fileHandle.write(urlget(self.src['full'],True,self.retries,self.chunk_size,-1,\
-									self.src['referpage'],THREADS==1 and -1 or self.id-1))
+									self.src['referpage'],THREADS==1 and -1 or self.id-1,self.report))
 				fileHandle.close()
 				self.tprint(fmttime()+self.propmt+'Finish '+basename+'.')
 				THREAD_PROGRESS[self.id-1][3]+=1
 		THREAD_PROGRESS[self.id-1][2]=-1#退出标识
 		self.tprint(fmttime()+self.propmt+'Exit~')
-		
 class reportthread(threading.Thread):
-	def __init__(self,threadname='Reportter'):
+	def __init__(self,queue,threadname='Reportter'):
 		threading.Thread.__init__(self, name=threadname)
+		self.report=queue
 	def run(self):
 		#THREAD_PROGRESS=[[0,0,0,0,0]]*THREADS
 		#已下载，总大小，开始时间，总下载量，总下载大小
@@ -207,23 +216,22 @@ class reportthread(threading.Thread):
 		backspace='\b'*140
 		flush=' '*67
 		livethread=THREADS
-		global REPORTQUEUE
 		lastdownsize=0
 		sleeptime=0.2
-		while livethread>0:
+		while livethread>0 or (not self.report.empty()):
 			downcount=0
 			queuesize=0
 			totaldownloadsize=0
 			downloadsize=0
-			while not REPORTQUEUE.empty():
-				print(flush+backspace+REPORTQUEUE.get())
-			livethread=THREADS
-			for i in range(THREADS):
+			while not self.report.empty():
+				print(flush+backspace+self.report.get())
+			livethread=len(COOKIE)
+			for i in range(len(COOKIE)):
 				downcount+=THREAD_PROGRESS[i][3]
 				queuesize+=THREAD_PROGRESS[i][1]
 				downloadsize+=THREAD_PROGRESS[i][0]
 				totaldownloadsize+=THREAD_PROGRESS[i][4]
-				if THREAD_PROGRESS[i][2]==-1:
+				if THREAD_PROGRESS[i][2]==-1 or THREAD_PROGRESS[i][2]==0:
 					livethread-=1
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
@@ -232,7 +240,6 @@ class reportthread(threading.Thread):
 				(totaldownloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
 			lastdownsize=totaldownloadsize
 			time.sleep(sleeptime)
-			
 def parse_albumname(url):
 	'''
 	Return albumname TUPLE: 0=CHN, 1=ENG, 2=JPN
@@ -576,19 +583,21 @@ def main():
 	#time.sleep(GET_INTERVAL)#f*ck!!!
 	#(self,threadname,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
 	#优先使用空用户和自定义用户
-	threadlist=[getimgthread(str(i+1),working_dir,skip_exist,retries,chunk,-1) for i in range(len(COOKIE)-BUILTINUSER)]
+	reportqueue=Queue.Queue()
+	threadlist=[getimgthread(str(i+2),reportqueue,working_dir,skip_exist,retries,chunk,-1) for i in range(len(COOKIE)-BUILTINUSER-1)]
 	random.shuffle(threadlist)
+	threadlist=[getimgthread('1',reportqueue,working_dir,skip_exist,retries,chunk,-1)]+threadlist
 	#5个内置用户1~5
-	threadsystem=[getimgthread(str(i+len(COOKIE)-BUILTINUSER+1),working_dir,skip_exist,retries,chunk,-1) for i in range(BUILTINUSER)]
+	threadsystem=[getimgthread(str(i+len(COOKIE)-BUILTINUSER+1),reportqueue,working_dir,skip_exist,retries,chunk,-1) for i in range(BUILTINUSER)]
 	random.shuffle(threadsystem)
 	threadlist+=threadsystem
 	#防止越界
 	if THREADS>len(threadlist):THREADS=len(threadlist)
 	for i in range(THREADS):threadlist[i].start()
 	if THREADS>1:
-		report=reportthread()
+		report=reportthread(reportqueue)
 		report.start()
-	for i in range(THREADS):threadlist[i].join()
+	for i in range(THREADS):threadlist[i].join(10)
 	if THREADS>1:report.join()
 	for i in range(THREADS):totaldowncount+=THREAD_PROGRESS[i][3]
 	print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures saved under '+working_dir)
@@ -675,6 +684,8 @@ def update():
 	'''
 	newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
 	notification=urlget("https://raw.github.com/fffonion/RoameBot/master/notification.txt")
+	global THREADS
+	THREADS=1#指定单线程flag
 	if newver!=__version__:
 		print_c('花现新版本Σ( ° △ °|||):'+newver)
 		if opath.split(sys.argv[0])[1].find('py')==-1:#is exe
