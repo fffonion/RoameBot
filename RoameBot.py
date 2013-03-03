@@ -344,6 +344,7 @@ def parse_pagelist(url,pagenum,mode=0):
 		if not today_mode:#today模式没有时间
 			if LASTUPDATE>time.mktime(time.strptime(picdate[i],'%Y-%m-%d %H:%M')):#已到时间分割点
 				up_to_date=True
+				fullpagethread=fullpagethread[:i]#用fullpagethread来衡量总个数
 				break
 		#图片文件长度
 		if(picinfo[i][-1]=='MB'):piclength=float(picinfo[i][-2])*1024#float化防止变int
