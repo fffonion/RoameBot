@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16 plusplus'
+__version__ = '2.16 plus*3'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -599,7 +599,7 @@ def main():
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
 	for i in range(3):
-		working_dir=(dir_path+opath.sep+dir_pref+namelist[i]+dir_suff).decode('utf-8')
+		working_dir=(dir_path+opath.sep+dir_pref+namelist[i].decode('utf-8').encode('gbk')+dir_suff).decode('gbk')
 		if opath.exists(working_dir) and namelist[i]!='':#目录已存在
 			print_c(fmttime()+'Former folder exists. Use that one.')
 			break#使用之前已使用过的目录
@@ -694,10 +694,11 @@ def search():
 			input=raw_input('> ') or '0'
 			if 0<int(input)<count+1:
 				write_config('download','name',urllist[int(input)-1])
-				main()
 			else:	raise ValueError
 		except ValueError:
 			print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+		else:
+			main()
 	
 def quick_filter():
 	'''
@@ -716,9 +717,10 @@ def quick_filter():
 			write_config('download','name','misc')
 		else:
 			raise ValueError
-		main()
 	except ValueError:#熊孩子没有输入数字
 		print_c('[なに？]σ(· ·?) \n')
+	else:
+		main()
 
 def update():
 	'''
