@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16 plus'
+__version__ = '2.16 plusplus'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -344,6 +344,7 @@ def parse_pagelist(url,pagenum,mode=0):
 		if not today_mode:#today模式没有时间
 			if LASTUPDATE>time.mktime(time.strptime(picdate[i],'%Y-%m-%d %H:%M')):#已到时间分割点
 				up_to_date=True
+				fullpagethread=fullpagethread[:i]#用fullpagethread来衡量总个数
 				break
 		#图片文件长度
 		if(picinfo[i][-1]=='MB'):piclength=float(picinfo[i][-2])*1024#float化防止变int
@@ -583,10 +584,15 @@ def main():
 			namelist=parse_albumname(HOMEURL+'/index/'+projname)
 			entry=parse_entry(HOMEURL+'/index/'+projname)
 			try	:
-				if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1][0]
-				else:entry=entry[0][0]
+				if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1]
+				else:entry=entry[0]
+				if int(entry[1])>120:#15页以上提醒
+					firstpagenum=int(raw_input(normstr('这个番组的壁纸比较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车跳过：')) or '12147483647')
+				entry=entry[0]
 			except ValueError:
 				print_c('要输入数字哟~\n')
+				return
+			
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		#处理比例过滤器,依次构造
 		nextpage+=[HOMEURL+entry+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html' for r in range(len(ratiolist))]
