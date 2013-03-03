@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16'
+__version__ = '2.16 plus'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -71,7 +71,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 		req = urllib2.Request(src)
 		ua='Mozilla/'+rrange(4,7,10)+'.0 (Windows NT '+rrange(5,7)+'.'+rrange(0,3)+') AppleWebKit/'+rrange(535,538,10)+\
 		' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)
-		req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 6.2) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.95 Safari/537.5')
+		req.add_header('User-Agent', ua)
 		#req.add_header('Referer', referer)
 		if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
 		#打开回复
@@ -336,7 +336,7 @@ def parse_pagelist(url,pagenum,mode=0):
 		today_mode=True
 	picsize=re.findall('<strong>(\d+)×(\d+)</strong>',content)
 	#初始化变量
-	fullpagethread=['']*8
+	fullpagethread=[]
 	fullurllist=['']*8
 	picelem=['']*8
 	#具体处理
@@ -357,8 +357,8 @@ def parse_pagelist(url,pagenum,mode=0):
 			fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
 			picelem[i]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
 			#多线程抓取类启动
-			fullpagethread[i]=parse_fullsize(picelem[i]['referpage'],fullurllist,i)
-			fullpagethread[i].start()
+			fullpagethread.append(parse_fullsize(picelem[i]['referpage'],fullurllist,i))
+			fullpagethread[-1].start()
 			#picelem[i]['full']=parse_fullsize(picelem[i]['referpage'])
 			picelem[i]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
 			picelem[i]['width']=picsize[i][0]#图宽
@@ -366,9 +366,10 @@ def parse_pagelist(url,pagenum,mode=0):
 			picelem[i]['length']=piclength
 			picelem[i]['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
 	#多线程抓取类同步
-	for i in range(len(singlepic)):
+	#不能使用singlepic因为增量更新的需要，需要截去一部分
+	for i in range(len(fullpagethread)):
 		fullpagethread[i].join()
-	for i in range(len(singlepic)):
+	for i in range(len(fullpagethread)):
 		picelem[i]['full']=fullurllist[i]
 		PICQUEUE.put_nowait(picelem[i])
 	nextpage=re.findall('title="下一页" href="(.+)" style=',content)#下一页
@@ -614,6 +615,7 @@ def main():
 	#图片下载
 	#time.sleep(GET_INTERVAL)#f*ck!!!
 	#(self,threadname,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
+	totaldowncount=PICQUEUE.qsize()
 	#优先使用空用户和自定义用户
 	reportqueue=Queue.Queue()
 	threadlist=[getimgthread(str(i+2),reportqueue,working_dir,skip_exist,retries,chunk,-1) for i in range(len(COOKIE)-BUILTINUSER-1)]
@@ -634,7 +636,6 @@ def main():
 		report.start()
 	for i in range(THREADS):threadlist[i].join(10)
 	if THREADS>1:report.join()
-	for i in range(THREADS):totaldowncount+=THREAD_PROGRESS[i][3]
 	print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures saved under '+working_dir)
 	os.remove(working_dir+opath.sep+'.roameproject')
 	write_timestamp(working_dir,ratiolist,projname)
