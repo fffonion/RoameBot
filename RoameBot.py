@@ -599,7 +599,7 @@ def main():
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
 	for i in range(3):
-		working_dir=(dir_path+opath.sep+dir_pref+namelist[i].decode('utf-8').encode('gbk')+dir_suff).decode('gbk')
+		working_dir=(dir_path+opath.sep+dir_pref+namelist[i].decode('utf-8').encode(sys.getfilesystemencoding())+dir_suff).decode(sys.getfilesystemencoding())
 		if opath.exists(working_dir) and namelist[i]!='':#目录已存在
 			print_c(fmttime()+'Former folder exists. Use that one.')
 			break#使用之前已使用过的目录
