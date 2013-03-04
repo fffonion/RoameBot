@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16 plus4'
+__version__ = '2.16 plus5'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -116,9 +116,9 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 						break
 					if THREADS!=1:
 						global THREAD_PROGRESS
-						THREAD_PROGRESS[cookieid-1][0]=bytes_got
-						THREAD_PROGRESS[cookieid-1][1]=total_size
-						THREAD_PROGRESS[cookieid-1][4]+=chunkrand
+						THREAD_PROGRESS[cookieid][0]=bytes_got
+						THREAD_PROGRESS[cookieid][1]=total_size
+						THREAD_PROGRESS[cookieid][4]+=chunkrand
 					else:#THREADS=1则是在在线更新
 						chunk_report(bytes_got, chunk_size, total_size,init_time)
 				#content=chunk_read(resp, chunk*1024,chunk_report)
@@ -224,6 +224,10 @@ class reportthread(threading.Thread):
 		livethread=THREADS
 		lastdownsize=0
 		sleeptime=0.2
+		speedreporttime=4
+		deltasize=0
+		rtime=0
+		speed=0
 		while livethread>0:
 			downcount=0
 			queuesize=0
@@ -246,9 +250,15 @@ class reportthread(threading.Thread):
 					livethread-=1
 			#eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
 			elapse=time.strftime('%M:%S',time.localtime(time.time()-init_time))
+			deltasize+=totaldownloadsize-lastdownsize
+			rtime=(rtime+1)%speedreporttime
+			if rtime==0:
+				speed=deltasize/sleeptime/speedreporttime/1024
+				deltasize=0
 			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s  %s" % (livethread,THREADS,\
 				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+livethread,downloadsize/1024,queuesize/1024,\
-				(totaldownloadsize-lastdownsize)/sleeptime/1024,elapse,backspace),
+				speed,elapse,backspace),
+			#print THREAD_PROGRESS
 			lastdownsize=totaldownloadsize
 			time.sleep(sleeptime)
 
@@ -334,6 +344,8 @@ def parse_pagelist(url,pagenum,mode=0):
 	if picinfo==[]:#有两种情况，以下对today模式
 		picinfo=re.findall('r:#789">([0-9.]+)([A-Z]+)</span',content)
 		today_mode=True
+		if picupload==[]:#today且不是“最新”
+			picupload=re.findall('le="font-size:12px">(.+) ~ <span',content) 
 	picsize=re.findall('<strong>(\d+)×(\d+)</strong>',content)
 	#初始化变量
 	fullpagethread=[]
