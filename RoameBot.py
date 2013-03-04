@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16 plus*3'
+__version__ = '2.16 plus*4'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -338,7 +338,7 @@ def parse_pagelist(url,pagenum,mode=0):
 	#初始化变量
 	fullpagethread=[]
 	fullurllist=['']*8
-	picelem=['']*8
+	picelem=[]
 	#具体处理
 	for i in range(len(singlepic)):	
 		if not today_mode:#today模式没有时间
@@ -350,27 +350,28 @@ def parse_pagelist(url,pagenum,mode=0):
 		if(picinfo[i][-1]=='MB'):piclength=float(picinfo[i][-2])*1024#float化防止变int
 		else:piclength=picinfo[i][-2]
 		#测试filter
+		#print picupload[i] in FILTER['banned_uploader'][0],picupload[i],FILTER['banned_uploader'][0]
 		if FILTER['min_width']<=float(picsize[i][0])<=FILTER['max_width'] and \
 		FILTER['min_length']<=float(picsize[i][1])<=FILTER['max_length'] and \
 		FILTER['min_size']<=float(piclength)<=FILTER['max_size'] and (not picupload[i] in FILTER['banned_uploader']):
-			picelem[i]={'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''}
-			picelem[i]['index']=i+(pagenum-1)*8
+			picelem.append({'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''})
+			picelem[-1]['index']=i+(pagenum-1)*8
 			fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
-			picelem[i]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
+			picelem[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
 			#多线程抓取类启动
-			fullpagethread.append(parse_fullsize(picelem[i]['referpage'],fullurllist,i))
+			fullpagethread.append(parse_fullsize(picelem[-1]['referpage'],fullurllist,len(picelem)-1))#偏移使用当前长度
 			fullpagethread[-1].start()
 			#picelem[i]['full']=parse_fullsize(picelem[i]['referpage'])
-			picelem[i]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
-			picelem[i]['width']=picsize[i][0]#图宽
-			picelem[i]['height']=picsize[i][1]#图高
-			picelem[i]['length']=piclength
-			picelem[i]['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
+			picelem[-1]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
+			picelem[-1]['width']=picsize[i][0]#图宽
+			picelem[-1]['height']=picsize[i][1]#图高
+			picelem[-1]['length']=piclength
+			picelem[-1]['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
 	#多线程抓取类同步
 	#不能使用singlepic因为增量更新的需要，需要截去一部分
-	for i in range(len(fullpagethread)):
+	for i in range(len(picelem)):
 		fullpagethread[i].join()
-	for i in range(len(fullpagethread)):
+	for i in range(len(picelem)):
 		picelem[i]['full']=fullurllist[i]
 		PICQUEUE.put_nowait(picelem[i])
 	nextpage=re.findall('title="下一页" href="(.+)" style=',content)#下一页
@@ -404,6 +405,7 @@ def read_config(sec,key):
 	cf=ConfigParser.ConfigParser()
 	cf.read(os.getcwdu()+opath.sep+'config.ini')
 	val=cf.get(sec, key)
+	if sys.platform=='win32':val=val.decode('gbk').encode('utf-8')
 	if val=='':return ''
 	else:return val
 
@@ -453,9 +455,9 @@ def load_filter(filtername):
 		if cf.has_option(filtername, o):
 			val=cf.get(filtername, o)
 			if val!='':
-				if o=='banned_uploader':FILTER[o]=val.decode('gbk').encode('utf-8').split('|')
+				if o=='banned_uploader':
+					FILTER[o]=(sys.platform=='win32' and val.decode('gbk').encode('utf-8') or val).split('|')
 				else:FILTER[o]=float(val)
-	
 def first_run():
 	'''
 	First run, initialize config.ini, show readme
@@ -549,7 +551,9 @@ def main():
 	retries=int(read_config('download','retries'))
 	skip_exist=read_config('download','skip_exist')
 	dir_name=read_config('download','dir_name')
-	dir_path=read_config('download','dir_path')=='' and opath.abspath(os.curdir)	or read_config('download','dir_path')
+	dir_path=read_config('download','dir_path')=='' and \
+	opath.abspath(os.curdir).decode(sys.getfilesystemencoding()).encode('utf-8') or\
+	 read_config('download','dir_path')
 	dir_pref=read_config('download','dir_pref')
 	dir_suff=read_config('download','dir_suff')
 	#LOGPATH=read_config('download','logpath')
@@ -586,8 +590,8 @@ def main():
 			try	:
 				if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1]
 				else:entry=entry[0]
-				if int(entry[1])>120:#15页以上提醒
-					firstpagenum=int(raw_input(normstr('这个番组的壁纸比较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车跳过：')) or '12147483647')
+				if int(entry[1])>120 and firstpagenum==2147483647:#15页以上提醒
+					firstpagenum=int(raw_input(normstr('这个番组的壁纸比较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车跳过：')) or '2147483647')
 				entry=entry[0]
 			except ValueError:
 				print_c('要输入数字哟~\n')
@@ -599,7 +603,7 @@ def main():
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
 	for i in range(3):
-		working_dir=(dir_path+opath.sep+dir_pref+namelist[i].decode('utf-8').encode('gbk')+dir_suff).decode('gbk')
+		working_dir=(dir_path+opath.sep+dir_pref+namelist[i]+dir_suff).decode('utf-8')
 		if opath.exists(working_dir) and namelist[i]!='':#目录已存在
 			print_c(fmttime()+'Former folder exists. Use that one.')
 			break#使用之前已使用过的目录
