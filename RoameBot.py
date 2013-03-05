@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16 plus5'
+__version__ = '2.16 plus6'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -21,7 +21,7 @@ RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth',
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
 				'-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
 				'-hotest-monthlyscore','-others-latest','-others-random']
-THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube','Kernel','Lichee','Medlar','Nothing','Orange','Papaya','Qiviut','R','S','T','U','V','W','X','Y','Z']
+THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube','Kernel','Lichee','Medlar','Nyanko','Orange','Papaya','Qiviut','R','S','T','U','V','W','X','Y','Z']
 GET_INTERVAL=0.1
 THREADS=25
 BUILTINUSER=15
@@ -95,33 +95,36 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 			total_size = int(total_size.strip())
 			if total_size<=8843:#链接错误=-1或过期=8843
 				report('Url expired or broken. Reparsing from referer.',reportQ)
-				content=urlget(parse_fullsize(referer),getimage,retries,chunk_size,downloaded,referer,cookieid)
-			else:#正常下载
-				#用头信息直接判断是否已下载
-				if downloaded!=-1:
-					if total_size==downloaded:
-						return 'SAME'
-					else:
-						return 'NOT-SAME'
-				#初始化变量
-				bytes_got = 0
-				init_time=time.time()
-				#开始chunk read
-				while 1:
-					chunkrand=chunk_size*random.randint(800,1248)
-					chunk = resp.read(chunkrand)
-					content+=chunk
-					bytes_got += len(chunk)
-					if not chunk:#完成
-						break
-					if THREADS!=1:
-						global THREAD_PROGRESS
-						THREAD_PROGRESS[cookieid][0]=bytes_got
-						THREAD_PROGRESS[cookieid][1]=total_size
-						THREAD_PROGRESS[cookieid][4]+=chunkrand
-					else:#THREADS=1则是在在线更新
-						chunk_report(bytes_got, chunk_size, total_size,init_time)
-				#content=chunk_read(resp, chunk*1024,chunk_report)
+				src=['']
+				parse_fullsize(referer,src,0).run()
+				src=src[0]
+				content=urlget(src,getimage,retries,chunk_size,downloaded,referer,cookieid,reportQ)
+			#正常下载
+			#用头信息直接判断是否已下载
+			if downloaded!=-1:
+				if total_size==downloaded or content=='SAME':#针对链接错误=-1或过期=8843时的返回值
+					return 'SAME'
+				else:
+					return 'NOT-SAME'
+			#初始化变量
+			bytes_got = 0
+			init_time=time.time()
+			#开始chunk read
+			while 1:
+				chunkrand=chunk_size*random.randint(800,1248)
+				chunk = resp.read(chunkrand)
+				content+=chunk
+				bytes_got += len(chunk)
+				if not chunk:#完成
+					break
+				if THREADS!=1:
+					global THREAD_PROGRESS
+					THREAD_PROGRESS[cookieid][0]=bytes_got
+					THREAD_PROGRESS[cookieid][1]=total_size
+					THREAD_PROGRESS[cookieid][4]+=chunkrand
+				else:#THREADS=1则是在在线更新
+					chunk_report(bytes_got, chunk_size, total_size,init_time)
+			#content=chunk_read(resp, chunk*1024,chunk_report)
 		else:#直接读取
 			content = resp.read()#.decode('utf-8')
 		#返回上级
@@ -603,7 +606,7 @@ def main():
 				if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1]
 				else:entry=entry[0]
 				if int(entry[1])>120 and firstpagenum==2147483647:#15页以上提醒
-					firstpagenum=int(raw_input(normstr('这个番组的壁纸比较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车跳过：')) or '2147483647')
+					firstpagenum=int(raw_input(normstr('这个番组的壁纸较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车全选：')) or '2147483647')
 				entry=entry[0]
 			except ValueError:
 				print_c('要输入数字哟~\n')
