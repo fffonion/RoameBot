@@ -21,6 +21,7 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 在界面选择3；你可以
  - 恢复上次已中断的任务（直接输入3即可）
  - 检查以前下载的番组有无新壁纸发布，并下载新壁纸（这需要读取上次目录下的.roamepast文件，须确保保存目录dir_path未变化）
+
 ###4.配置文件config.ini说明
 ####[download]块
 ***
