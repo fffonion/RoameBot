@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16 plus6'
+__version__ = '2.16 plus7'
 
 import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
 PICQUEUE=Queue.Queue()
@@ -258,7 +258,7 @@ class reportthread(threading.Thread):
 			if rtime==0:
 				speed=deltasize/sleeptime/speedreporttime/1024
 				deltasize=0
-			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%3d   %3.1fKB/s    %s  %s" % (livethread,THREADS,\
+			print "\bThread %d/%d  Remain %3d/%3d  Queued %3d/%4d   %3.1fKB/s    %s  %s" % (livethread,THREADS,\
 				PICQUEUE.qsize(),downcount+PICQUEUE.qsize()+livethread,downloadsize/1024,queuesize/1024,\
 				speed,elapse,backspace),
 			#print THREAD_PROGRESS
@@ -318,7 +318,7 @@ def parse_latest():
 			deltanum.append(testdelta==[] and str(len(re.findall('<a title=',allblocks[i]))) or testdelta[0])
 	print_c('最新上传('+str(len(entries))+')：')
 	for i in range(len(entries)):
-		print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸',' (')+updatetime[i]+' 更新'+deltanum[i]+'张)')
+		print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸','')+' ('+updatetime[i]+' 更新'+deltanum[i]+'张)')
 	try:
 		inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')))
 		if 0<inp<=len(entries)+1:write_config('download','name',entries[inp-1][0])
