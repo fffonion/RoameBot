@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.17'
+__version__ = '2.17 plus'
 
 import urllib2,socket
 import os,os.path as opath,ConfigParser,sys,traceback
@@ -614,11 +614,12 @@ def main():
 		namelist=[time.strftime('%Y-%m-%d %H-%M',time.localtime()),'','']
 		dir_name=0#only this one
 	else:#正常模式OR散图模式
-		if projname=='misc':#散图模式
-			yyyymm=raw_input(normstr('输入散图的年月，如201301，最早为200604: '))
+		if 'misc' in projname:#散图模式=misc 或 misc/201303
+			yyyymm=len(projname)>4 and projname[5:] or raw_input(normstr('输入散图的年月，如201301，最早为200604: '))
 			namelist=[(yyyymm[:4]+'年'+yyyymm[4:6]+'月 散图').decode('utf-8'),yyyymm,'']
 			#print namelist[0]
 			projname='/misc/'+yyyymm
+			write_config('download','name',projname)
 			entry='/index'+projname+'/images'
 		else:#正常模式
 			namelist=parse_albumname(HOMEURL+'/index/'+projname)
