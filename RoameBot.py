@@ -157,8 +157,9 @@ def print_c(str,singleline=False):
 	'''
 	UTF-8 print module
 	'''
-	if singleline:print '\b'*80+' '*60+'\b'*62+normstr(str.decode('utf-8')),
-	else:print(normstr(str.decode('utf-8')))
+	#if singleline:print '\b'*80+' '*60+'\b'*62+normstr(str.decode('utf-8')),
+	#else:
+	print(normstr(str.decode('utf-8')))
 
 def normstr(str,errors='ignore'):
 	if sys.platform=='win32':return str.encode('cp936',errors)
@@ -806,16 +807,16 @@ def mklogin():
 		print_c('登录成功！已保存Cookie~')
 		coo=re.findall('uid=(.+); exp.+upw=(.+); exp.+cmd=(.+); exp',str(coo))[0]
 		coo='uid='+coo[0]+';upw='+coo[1]+';cmd='+coo[2]
-		print_c('正在获取用户状态……',True)
+		print_c('正在获取用户状态……'+'\b'*25)
 		req = urllib2.Request('http://www.roame.net/ajax.php?a=769&_nc='+str(int(time.time())))
 		req.add_header('Cookie',coo)
 		resp=urllib2.urlopen(req,'i=1').read()
 		resp=resp.replace('"','').decode('unicode-escape').split(',')
-		print_c('获取状态成功！\n',True)
-		#共88组:1,0状态码，3-49界面标签，50 [fffonion@163.com 51 fffonoon 52 成员级 53 2012-07-09
-		#54 http:\/\/www.roame.net\/space\ 57 139107] 59 路人 66 [1993 67 7 68 9] 69 19
-		#71 [2 (2) 72 60 (60) 73 20.6MB 74 2]
-		#85 [701 86 0 87 0]]
+		print_c(' '*25+'\b'*25+'获取状态成功！')
+		#共88组:1,0状态码，3-49界面标签，50 [a@b.com 51 !!name!! 52 成员级 53 2012-07-09
+		#54 http:\/\/www.roame.net\/space\ 57 !!id!!] 59 路人 66 [1993 67 7 68 9] 69 19
+		#71 [2 (2) 72 60 (60) 73 0.00MB 74 2]
+		#85 [100 86 0 87 0]]
 		uname=resp[51]
 		print_c('['+uname+'] - '+resp[57][:-1]+'\n用户标识：'+resp[50][1:]+'\n隶属组  ：'+resp[52]+\
 			' - '+resp[59]+'\n结算信息：积分'+resp[85][1:]+', LYB'+resp[86]+', YLB'+resp[87][:-2])

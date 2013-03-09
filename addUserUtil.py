@@ -68,10 +68,6 @@ def mklogin():
         resp=urllib2.urlopen(req,'i=1').read()
         resp=resp.replace('"','').decode('unicode-escape').split(',')
         print_c('获取成功！')
-        #共88组:1,0状态码，3-49界面标签，50 [fffonion@163.com 51 fffonoon 52 成员级 53 2012-07-09
-        #54 http:\/\/www.roame.net\/space\ 57 139107] 59 路人 66 [1993 67 7 68 9] 69 19
-        #71 [2 (2) 72 60 (60) 73 20.6MB 74 2]
-        #85 [701 86 0 87 0]]
         uname=resp[51]
         print_c('['+uname+'] - '+resp[57][:-1]+'\n用户标识：'+resp[50][1:]+'\n隶属组  ：'+resp[52]+\
             ' - '+resp[59]+'\n结算信息：'+resp[85][1:]+'积分, '+resp[86]+'LYB, '+resp[87][:-2]+'YLB')
