@@ -4,9 +4,11 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.16 plus7'
+__version__ = '2.17'
 
-import urllib2,re,os,os.path as opath,time,ConfigParser,sys,traceback,socket,threading,Queue,random,base64 as b64
+import urllib2,socket
+import os,os.path as opath,ConfigParser,sys,traceback
+import base64 as b64,Queue,random,threading,re,time
 PICQUEUE=Queue.Queue()
 FILTER={}
 COOKIE=[]
@@ -36,8 +38,11 @@ def mkcookie():
 	#COOKIE=['']#空用户
 	cf=ConfigParser.ConfigParser()
 	cf.read(os.getcwdu()+opath.sep+'config.ini')
-	var=cf.get('cookie', 'var').split('|')
-	COOKIE=(var==[''] and var or ['']+var)
+	opts=cf.items('cookie')
+	for i in range(len(opts)):
+		opt=opts[i][0]
+		if opt !='uname' and opt !='var':
+			COOKIE+=[opts[i][1]]
 	cnt=len(unamepw[0])/8
 	COOKIE+=['uid='+b64.decodestring(unamepw[0][i*8:(i+1)*8])+';upw='+b64.decodestring(unamepw[1])+';cmd='+ucmdstr[i]+';' for i in range(cnt)]
 
@@ -148,15 +153,17 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
 	
 		
        
-def print_c(str):
+def print_c(str,singleline=False):
 	'''
 	UTF-8 print module
 	'''
-	print(normstr(str.decode('utf-8')))
+	if singleline:print '\b'*80+' '*60+'\b'*62+normstr(str.decode('utf-8')),
+	else:print(normstr(str.decode('utf-8')))
 
 def normstr(str,errors='ignore'):
 	if sys.platform=='win32':return str.encode('cp936',errors)
 	else:return str.encode('utf-8',errors)
+	
 def fmttime():
 	'''
 	Return time like [2013-02-13 16:23:21]
@@ -419,8 +426,11 @@ def read_config(sec,key):
 	'''
 	cf=ConfigParser.ConfigParser()
 	cf.read(os.getcwdu()+opath.sep+'config.ini')
-	val=cf.get(sec, key)
-	if sys.platform=='win32':val=val.decode('gbk').encode('utf-8')
+	if cf.has_option(sec, key):
+		val=cf.get(sec, key)
+		if sys.platform=='win32':val=val.decode('cp936').encode('utf-8')
+	else:
+		val=''
 	if val=='':return ''
 	else:return val
 
@@ -432,7 +442,16 @@ def write_config(sec,key,val):
 	cf.read(os.getcwdu()+opath.sep+'config.ini')
 	cf.set(sec, key,val)
 	cf.write(open(os.getcwdu()+opath.sep+'config.ini', "w"))
-
+	
+def del_option(sec,key):
+	'''
+	Delete an option
+	'''
+	cf=ConfigParser.ConfigParser()
+	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	cf.remove_option(sec, key)
+	cf.write(open(os.getcwdu()+opath.sep+'config.ini', "w"))
+	
 def read_timestamp(workingdir,ratio):
 	'''
 	Found earlist updated ratio
@@ -471,7 +490,7 @@ def load_filter(filtername):
 			val=cf.get(filtername, o)
 			if val!='':
 				if o=='banned_uploader':
-					FILTER[o]=(sys.platform=='win32' and val.decode('gbk').encode('utf-8') or val).split('|')
+					FILTER[o]=(sys.platform=='win32' and val.decode('cp936').encode('utf-8') or val).split('|')
 				else:FILTER[o]=float(val)
 def first_run():
 	'''
@@ -482,7 +501,8 @@ def first_run():
 	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
 	\ndir_name = 2\ndir_path = \nname = hyouka\nthreads = 3\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
 	\nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n\n[filter_0]\nratio = 1|7\
-	\nmax_length = 	\nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \n\n[cookie]\nvar = ')
+	\nmax_length = 	\nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \
+	\n\n[cookie]\nuname =')
 	f.flush()
 	f.close()
 	print_c('''【首次运行】
@@ -766,11 +786,54 @@ def update():
 	else:
 		print_c('已经是最新版本啦更新控：'+__version__)
 		
+def mklogin():
+	name=read_config('cookie','uname')
+	if name!='':
+		write_config('cookie','uname','')
+		del_option('cookie',name)
+		print_c('已退出~')
+		return
+	#ajax提交，返回均为json，直接用，分割算了
+	name=raw_input(normstr('请输入用户名：'))
+	if sys.platform=='win32':name=name.decode('cp936').encode('utf-8')
+	pw=raw_input(normstr('请输入密码：'))
+	data='m='+name+'&p='+pw
+	req = urllib2.Request('http://www.roame.net/ajax.php?a=4098&_nc='+str(int(time.time())))
+	resp=urllib2.urlopen(req,data)
+	coo=resp.info().getheader('Set-Cookie')
+	result=resp.read()[1:-1].split(',')
+	if result[1]=='0':
+		print_c('登录成功！已保存Cookie~')
+		coo=re.findall('uid=(.+); exp.+upw=(.+); exp.+cmd=(.+); exp',str(coo))[0]
+		coo='uid='+coo[0]+';upw='+coo[1]+';cmd='+coo[2]
+		print_c('正在获取用户状态……',True)
+		req = urllib2.Request('http://www.roame.net/ajax.php?a=769&_nc='+str(int(time.time())))
+		req.add_header('Cookie',coo)
+		resp=urllib2.urlopen(req,'i=1').read()
+		resp=resp.replace('"','').decode('unicode-escape').split(',')
+		print_c('获取状态成功！\n',True)
+		#共88组:1,0状态码，3-49界面标签，50 [fffonion@163.com 51 fffonoon 52 成员级 53 2012-07-09
+		#54 http:\/\/www.roame.net\/space\ 57 139107] 59 路人 66 [1993 67 7 68 9] 69 19
+		#71 [2 (2) 72 60 (60) 73 20.6MB 74 2]
+		#85 [701 86 0 87 0]]
+		uname=resp[51]
+		print_c('['+uname+'] - '+resp[57][:-1]+'\n用户标识：'+resp[50][1:]+'\n隶属组  ：'+resp[52]+\
+			' - '+resp[59]+'\n结算信息：积分'+resp[85][1:]+', LYB'+resp[86]+', YLB'+resp[87][:-2])
+		write_config('cookie','uname',uname.decode('utf-8').encode('cp936'))
+		write_config('cookie',uname.decode('utf-8').encode('cp936'),coo)
+		return '已登录('+uname+')'
+	else:
+		print_c('登陆失败'+(len(result)>2 and '：'+result[2][1:-1].decode('unicode-escape') or ''))
+
+			
 if __name__ == '__main__':  
 	try:
 		if not opath.exists(os.getcwdu()+opath.sep+'config.ini'):#first time
 			first_run()
 		init_proxy()
+		uname=read_config('cookie','uname')
+		if uname=='':loginopt='!未登录'
+		else:loginopt='已登录('+uname+')'
 		#重设默认编码
 		reload(sys)
 		sys.setdefaultencoding('utf-8')
@@ -778,16 +841,17 @@ if __name__ == '__main__':
 		#if len(sys.argv)==1:
 		#菜单
 		mkcookie()
-		while input !='6':
-			print_c('1.搜索\n2.最新上传\n3.继续上次任务\n4.快速筛选\n5.更新\n6.退出\n')
+		while True:
+			print_c('1.搜索\n2.最新上传\n3.继续上次任务\n4.快速筛选\n5.更新\n6.'+loginopt+'\n')
 			input=raw_input('> ')
 			if input=='3':main()
 			elif input=='1':search()
 			elif input=='2':parse_latest()
 			elif input=='4':quick_filter()
 			elif input=='5':update()
-			elif input!='6':print_c('按错了吧亲∑(っ °Д °;)\n')
-			
+			elif input=='6':loginopt=mklogin() or '!未登录'
+			else:print_c('按错了吧亲∑(っ °Д °;)')
+			print('\n'+'-'*50)
 	except Exception,ex:
 		print_c('啊咧，出错了_(:з」∠)_ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
 		f=open(os.getcwdu()+opath.sep+LOGPATH,'a')
@@ -796,4 +860,4 @@ if __name__ == '__main__':
 		traceback.print_exc()
 		f.flush()
 		f.close()
-a=raw_input(normstr('按任意键退出亲~'))
+a=raw_input(normstr('按回车键退出亲~'))
