@@ -9,7 +9,7 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 ##小技巧
 ###1.关于多任务下载
 路游社区对图片下载会话作了限制，因此无法实现多线程。但从2.0版本开始本爬虫具有了多任务下载的能力。
-内置账号因为大家都在用所以可能会有问题，你可以添加自己的账号，[教程请点这里](https://github.com/fffonion/RoameBot/wiki/Add-custom-cookie)
+内置账号因为大家都在用所以可能会有问题，你可以[使用这个工具](https://raw.github.com/fffonion/RoameBot/master/addUserUtil.py)添加自己的账号
 ###2.关于增量更新已下载的壁纸
 只要保证保存目录(dir_path)相同，RoameBot就会智能地选择下载未下载的壁纸，跳过已有的
 
