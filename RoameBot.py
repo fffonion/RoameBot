@@ -619,6 +619,7 @@ def main():
 			namelist=[(yyyymm[:4]+'年'+yyyymm[4:6]+'月 散图').decode('utf-8'),yyyymm,'']
 			#print namelist[0]
 			projname='/misc/'+yyyymm
+			print projname
 			write_config('download','name',projname)
 			entry='/index'+projname+'/images'
 		else:#正常模式
