@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.17.2'
+__version__ = '2.17.3'
 
 import urllib2,socket
 import os,os.path as opath,ConfigParser,sys,traceback
@@ -14,7 +14,7 @@ FILTER={}
 COOKIE=[]
 #INITURL='http://www.roame.net/index/hakuouki-shinsengumi-kitan'
 HOMEURL='http://www.roame.net'
-LASTUPDATE=0
+TIMESTAMP=0
 #缓存变量
 LATESTCONTENT=''
 INDEXLIST=[]
@@ -365,7 +365,7 @@ def parse_pagelist(url,pagenum,mode=0):
 	#具体处理
 	for i in range(len(singlepic)):	
 		if not today_mode:#today模式没有时间
-			if LASTUPDATE>time.mktime(time.strptime(picdate[i],'%Y-%m-%d %H:%M')):#已到时间分割点
+			if TIMESTAMP>time.mktime(time.strptime(picdate[i],'%Y-%m-%d %H:%M')):#已到时间分割点
 				up_to_date=True
 				fullpagethread=fullpagethread[:i]#用fullpagethread来衡量总个数
 				break
@@ -457,14 +457,14 @@ def read_timestamp(workingdir,ratio):
 	'''
 	Found earlist updated ratio
 	'''
-	global LASTUPDATE
-	LASTUPDATE=0
+	global TIMESTAMP
+	TIMESTAMP=0
 	filename = workingdir+opath.sep+'.roamepast'
 	if opath.exists(filename):
 		f=open(filename,'r')
 		for line in f:
 			lst=line.split(',')
-			if lst[0] == str(ratio):LASTUPDATE=long((lst[1][-1]=='\n' and lst[1][:-1] or lst[1]).strip())#这个ratio的更新时间
+			if lst[0] == str(ratio):TIMESTAMP=long((lst[1][-1]=='\n' and lst[1][:-1] or lst[1]).strip())#这个ratio的更新时间
 		f.close()
 		return True
 	else:
@@ -538,18 +538,22 @@ def init_proxy():
 		opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
 		urllib2.install_opener(opener)
 		
-def load_remote_picqueue(nextpage,firstpagenum,workingdir,ratiolist):
+def load_remote_picqueue(nextpage,firstpagenum,workingdir,ratiolist,ignore_timestamp=False):
 	'''
 	Remote PICQUEUE parsing
 	'''
 	#global PICQUEUE
 	#页面处理并得到所有图片URL，位于全局变量PICQUEUE中
 	pagenum=1
-	for j in range(len(nextpage)):#nextpage列表个数等于比例个数
-		if read_timestamp(workingdir,ratiolist[j])==True:print fmttime()+'Read time-stamp info from file.'
-		while(nextpage[j]!=None and pagenum<=firstpagenum):
-			print '%sPage parsing started at %s' % (fmttime(),nextpage[j]),
-			nextpage[j]=parse_pagelist(nextpage[j],pagenum)
+	#深拷贝；用来防止对原nextpage产生影响，因为可能还要用一次（完整扫描时）
+	nextpage_cache=[nextpage[i] for i in range(len(nextpage))]
+	for j in range(len(nextpage_cache)):#nextpage列表个数等于比例个数
+		if not ignore_timestamp:
+			if read_timestamp(workingdir,ratiolist[j])==True:print fmttime()+'Read time-stamp info from file.'
+		else:read_timestamp('IGNORE_TIMESTAMP_FLAG',['1'])#乱打的路径，不读取时间戳文件
+		while(nextpage_cache[j]!=None and pagenum<=firstpagenum):
+			print '%sPage parsing started at %s' % (fmttime(),nextpage_cache[j]),
+			nextpage_cache[j]=parse_pagelist(nextpage_cache[j],pagenum)
 			print ' Finished.'
 			pagenum+=1
 	#保存到文件
@@ -602,7 +606,7 @@ def main():
 	filtername=read_config('download','filter')
 	load_filter(filtername)
 	ratiolist=read_config(filtername,'ratio').split('|')
-	global PICQUEUE,FILTER,LASTUPDATE
+	global PICQUEUE,FILTER,TIMESTAMP
 	PICQUEUE=Queue.Queue()
 	nextpage=[]
 	totaldowncount=0
@@ -659,6 +663,10 @@ def main():
 	else:
 		load_remote_picqueue(nextpage,firstpagenum,working_dir,ratiolist)
 		print fmttime()+'Parse finished. (Got '+str(PICQUEUE.qsize())+'p)'
+		if PICQUEUE.qsize()==0:
+			if (raw_input(normstr("似乎没有新图片，可能是没有新图片发布，也有可能是服务器抽风了；可以按回车或‘y’进行完整扫描（可能花费较多时间）：")) or 'y')=='y':
+				load_remote_picqueue(nextpage,firstpagenum,working_dir,ratiolist,ignore_timestamp=True)
+				print fmttime()+'Parse finished. (Got '+str(PICQUEUE.qsize())+'p)'
 	print fmttime()+'Download started.'+(THREADS==1 and '(Single Thread)' or '('+str(THREADS)+' Threads)')
 	#图片下载
 	#time.sleep(GET_INTERVAL)#f*ck!!!
