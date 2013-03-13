@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.17.3'
+__version__ = '2.18'
 
 import urllib2,socket
 import os,os.path as opath,ConfigParser,sys,traceback
@@ -520,10 +520,10 @@ def first_run():
 - 完整说明请见：https://github.com/fffonion/RoameBot/blob/master/Readme.md
 - 图文说明在这里：http://www.gn00.com/thread-220277-1-1.html
 
-·ω·）ノ	mail: xijinping@yooooo.us	blog: http://yooooo.us
+·ω·）ノ	mail: xijinping@yooooo.us	blog: http://www.yooooo.us
 2013-2-28
 
-按任意键继续……
+按回车键继续……
 	''')
 	input=raw_input('')
 	
@@ -631,16 +631,13 @@ def main():
 			try	:
 				if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1]
 				else:entry=entry[0]
-				if int(entry[1])>120 and firstpagenum==2147483647:#15页以上提醒
-					firstpagenum=int(raw_input(normstr('这个番组的壁纸较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车全选：')) or '2147483647')
-				entry=entry[0]
 			except ValueError:
 				print_c('要输入数字哟~\n')
 				return
 			
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		#处理比例过滤器,依次构造
-		nextpage+=[HOMEURL+entry+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html' for r in range(len(ratiolist))]
+		nextpage+=[HOMEURL+entry[0]+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html' for r in range(len(ratiolist))]
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
 	for i in range(3):
@@ -660,6 +657,8 @@ def main():
 		load_local_picqueue(projfile_path)
 		print fmttime()+'Load download progress from file. (Got '+str(PICQUEUE.qsize())+'p)'
 	else:
+		if int(entry[1])>120 and firstpagenum==2147483647:#15页以上提醒
+					firstpagenum=int(raw_input(normstr('这个番组的壁纸较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车全选：')) or '2147483647')
 		load_remote_picqueue(nextpage,firstpagenum,working_dir,ratiolist)
 		print fmttime()+'Parse finished. (Got '+str(PICQUEUE.qsize())+'p)'
 		if PICQUEUE.qsize()==0:
