@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.17 plus'
+__version__ = '2.17.2'
 
 import urllib2,socket
 import os,os.path as opath,ConfigParser,sys,traceback
@@ -615,7 +615,7 @@ def main():
 		dir_name=0#only this one
 	else:#正常模式OR散图模式
 		if 'misc' in projname:#散图模式=misc 或 misc/201303
-			yyyymm=len(projname)>4 and projname[5:] or raw_input(normstr('输入散图的年月，如201301，最早为200604: '))
+			yyyymm=len(projname)>4 and projname[6:] or raw_input(normstr('输入散图的年月，如201301，最早为200604: '))
 			namelist=[(yyyymm[:4]+'年'+yyyymm[4:6]+'月 散图').decode('utf-8'),yyyymm,'']
 			#print namelist[0]
 			projname='/misc/'+yyyymm
