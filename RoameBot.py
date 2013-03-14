@@ -657,7 +657,7 @@ def main():
 		load_local_picqueue(projfile_path)
 		print fmttime()+'Load download progress from file. (Got '+str(PICQUEUE.qsize())+'p)'
 	else:
-		if entry[1]>120 and firstpagenum==2147483647:#15页以上提醒
+		if int(entry[1])>120 and firstpagenum==2147483647:#15页以上提醒
 					firstpagenum=int(raw_input(normstr('这个番组的壁纸较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车全选：')) or '2147483647')
 		load_remote_picqueue(nextpage,firstpagenum,working_dir,ratiolist)
 		print fmttime()+'Parse finished. (Got '+str(PICQUEUE.qsize())+'p)'
