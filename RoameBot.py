@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.19 fix'
+__version__ = '2.2'
 
 import urllib2,socket
 import os,os.path as opath,ConfigParser,sys,traceback
@@ -621,7 +621,8 @@ def main():
 		nextpage.append(HOMEURL+'/today/index'+BUILT_IN_SUFFIX[int(read_config('download','built_in'))]+'.html')
 		namelist=[time.strftime('%Y-%m-%d %H-%M',time.localtime()),'','']
 		dir_name=0#only this one
-		entry=['','0']#for consistence
+		entry=['',0]#for consistence
+		if int(read_config('download','built_in')) not in [16,17,18]:entry[1]='*无限*'
 	else:#正常模式OR散图模式
 		if 'misc' in projname:#散图模式=misc 或 misc/201303
 			yyyymm=len(projname)>4 and projname[5:] or raw_input(normstr('输入散图的年月，如201301，最早为200604: '))
@@ -643,6 +644,7 @@ def main():
 		print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
 		#处理比例过滤器,依次构造
 		nextpage+=[HOMEURL+entry[0]+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html' for r in range(len(ratiolist))]
+		entry[1]=int(entry[1])/8
 	if namelist[2]==''and dir_name=='2':#选日文而日文不存在则改选中文
 		dir_name='0'
 	for i in range(3):
@@ -662,8 +664,8 @@ def main():
 		load_local_picqueue(projfile_path)
 		print fmttime()+'Load download progress from file. (Got '+str(PICQUEUE.qsize())+'p)'
 	else:
-		if int(entry[1])>120 and firstpagenum==2147483647:#15页以上提醒
-					firstpagenum=int(raw_input(normstr('这个番组的壁纸较多(约'+str(int(entry[1])/8)+'页)，你可以选择下载前x页(输入x值)，或者按回车全选：')) or '2147483647')
+		if entry[1]>120 and firstpagenum==2147483647:#15页以上提醒
+					firstpagenum=int(raw_input(normstr('这个番组的壁纸较多(约'+entry[1]+'页)，你可以选择下载前x页(输入x值)，或者按回车全选：')) or '2147483647')
 		load_remote_picqueue(nextpage,firstpagenum,working_dir,ratiolist)
 		print fmttime()+'Parse finished. (Got '+str(PICQUEUE.qsize())+'p)'
 		if PICQUEUE.qsize()==0:
