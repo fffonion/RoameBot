@@ -621,6 +621,7 @@ def main():
 		nextpage.append(HOMEURL+'/today/index'+BUILT_IN_SUFFIX[int(read_config('download','built_in'))]+'.html')
 		namelist=[time.strftime('%Y-%m-%d %H-%M',time.localtime()),'','']
 		dir_name=0#only this one
+		entry=['','0']#for consistence
 	else:#正常模式OR散图模式
 		if 'misc' in projname:#散图模式=misc 或 misc/201303
 			yyyymm=len(projname)>4 and projname[5:] or raw_input(normstr('输入散图的年月，如201301，最早为200604: '))
