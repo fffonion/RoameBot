@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion		<fffonion@gmail.com>
 
-__version__ = '2.18 plus'
+__version__ = '2.19'
 
 import urllib2,socket
 import os,os.path as opath,ConfigParser,sys,traceback
@@ -37,7 +37,7 @@ def mkcookie():
 	global COOKIE
 	#COOKIE=['']#空用户
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	cf.read(sys.path[0]+opath.sep+'config.ini')
 	opts=cf.items('cookie')
 	for i in range(len(opts)):
 		opt=opts[i][0]
@@ -426,7 +426,7 @@ def read_config(sec,key):
 	Read config from file
 	'''
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	cf.read(sys.path[0]+opath.sep+'config.ini')
 	if cf.has_option(sec, key):
 		val=cf.get(sec, key)
 		if sys.platform=='win32':val=val.decode('cp936').encode('utf-8')
@@ -440,18 +440,18 @@ def write_config(sec,key,val):
 	Write config to file
 	'''
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	cf.read(sys.path[0]+opath.sep+'config.ini')
 	cf.set(sec, key,val)
-	cf.write(open(os.getcwdu()+opath.sep+'config.ini', "w"))
+	cf.write(open(sys.path[0]+opath.sep+'config.ini', "w"))
 	
 def del_option(sec,key):
 	'''
 	Delete an option
 	'''
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	cf.read(sys.path[0]+opath.sep+'config.ini')
 	cf.remove_option(sec, key)
-	cf.write(open(os.getcwdu()+opath.sep+'config.ini', "w"))
+	cf.write(open(sys.path[0]+opath.sep+'config.ini', "w"))
 	
 def read_timestamp(workingdir,ratio):
 	'''
@@ -483,7 +483,7 @@ def write_timestamp(working_dir,ratio,projname):
 def load_filter(filtername):
 	global FILTER
 	cf=ConfigParser.ConfigParser()
-	cf.read(os.getcwdu()+opath.sep+'config.ini')
+	cf.read(sys.path[0]+opath.sep+'config.ini')
 	FILTER={'max_length':2147483647,'max_width':2147483647,'min_length':0,'min_width':0,\
 		'max_size':2147483647,'min_size':0,'banned_uploader':[]}
 	for o in FILTER:
@@ -497,7 +497,7 @@ def first_run():
 	'''
 	First run, initialize config.ini, show readme
 	'''
-	filename = os.getcwdu()+opath.sep+'config.ini'
+	filename = sys.path[0]+opath.sep+'config.ini'
 	f=file(filename,'w')
 	f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
 	\ndir_name = 2\ndir_path = \nname = hyouka\nthreads = 3\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
@@ -783,10 +783,10 @@ def update():
 		if opath.split(sys.argv[0])[1].find('py')==-1:#is exe
 			ext='.exe'
 			print_c('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
-			filename=os.getcwdu()+opath.sep+'RoameBot.'+newver+ext
+			filename=sys.path[0]+opath.sep+'RoameBot.'+newver+ext
 		else:
 			ext='.py'
-			#filename=os.getcwdu()+opath.sep+'RoameBot.py'
+			#filename=sys.path[0]+opath.sep+'RoameBot.py'
 			filename=sys.argv[0]
 		fileHandle=open(filename,'wb')
 		fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
@@ -837,7 +837,7 @@ def mklogin():
 			
 if __name__ == '__main__':  
 	try:
-		if not opath.exists(os.getcwdu()+opath.sep+'config.ini'):#first time
+		if not opath.exists(sys.path[0]+opath.sep+'config.ini'):#first time
 			first_run()
 		init_proxy()
 		uname=read_config('cookie','uname')
@@ -863,7 +863,7 @@ if __name__ == '__main__':
 			print('\n'+'-'*50)
 	except Exception,ex:
 		print_c('啊咧，出错了_(:з」∠)_ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
-		f=open(os.getcwdu()+opath.sep+LOGPATH,'a')
+		f=open(sys.path[0]+opath.sep+LOGPATH,'a')
 		f.write(fmttime()+'Stopped.\n')
 		traceback.print_exc(file=f)
 		traceback.print_exc()
