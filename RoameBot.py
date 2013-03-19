@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.21'
+__version__ = '2.21 fix'
 
 import urllib2,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -130,7 +130,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
                     break
                 if THREADS!=1:
                     global THREAD_PROGRESS
-                    print THREAD_PROGRESS[cookieid]
+                    #print THREAD_PROGRESS[cookieid]
                     THREAD_PROGRESS[cookieid]['downsize']=bytes_got
                     THREAD_PROGRESS[cookieid]['picsize']=total_size
                     THREAD_PROGRESS[cookieid]['finishsize']+=chunkrand
@@ -284,7 +284,7 @@ class getimgthread(threading.Thread):
         self.propmt=THREAD_NAME[self.id-1]+': '
         self.report=queue
         global THREAD_PROGRESS
-        THREAD_PROGRESS[self.id-1]=THREAD_PROGRESS={'downsize':0,'picsize':0,'inittime':0,'finishcount':0,'finishsize':0,'skipcount':0}
+        THREAD_PROGRESS[self.id-1]={'downsize':0,'picsize':0,'inittime':0,'finishcount':0,'finishsize':0,'skipcount':0}
         
     def tprint(self,str):
         """
@@ -362,7 +362,7 @@ class reportthread(threading.Thread):
                 downcount+=THREAD_PROGRESS[i]['finishcount']
                 queuesize+=THREAD_PROGRESS[i]['picsize']
                 downloadsize+=THREAD_PROGRESS[i]['downsize']
-                totaldownloadsize+=THREAD_PROGRESS[i]['totalsize']
+                totaldownloadsize+=THREAD_PROGRESS[i]['finishsize']
                 if THREAD_PROGRESS[i]['inittime']==-1 or THREAD_PROGRESS[i]['inittime']==0:
                     livethread-=1
             #eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
