@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.21'
+__version__ = '2.21 fix'
 
 import urllib2,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -130,7 +130,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
                     break
                 if THREADS!=1:
                     global THREAD_PROGRESS
-                    print THREAD_PROGRESS[cookieid]
+                    #print THREAD_PROGRESS[cookieid]
                     THREAD_PROGRESS[cookieid]['downsize']=bytes_got
                     THREAD_PROGRESS[cookieid]['picsize']=total_size
                     THREAD_PROGRESS[cookieid]['finishsize']+=chunkrand
@@ -284,7 +284,7 @@ class getimgthread(threading.Thread):
         self.propmt=THREAD_NAME[self.id-1]+': '
         self.report=queue
         global THREAD_PROGRESS
-        THREAD_PROGRESS[self.id-1]=THREAD_PROGRESS={'downsize':0,'picsize':0,'inittime':0,'finishcount':0,'finishsize':0,'skipcount':0}
+        THREAD_PROGRESS[self.id-1]={'downsize':0,'picsize':0,'inittime':0,'finishcount':0,'finishsize':0,'skipcount':0}
         
     def tprint(self,str):
         """
@@ -305,12 +305,14 @@ class getimgthread(threading.Thread):
             #urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
             if opath.exists(filename) and self.skip_exist=='1':#存在则跳过
                     self.tprint(fmttime()+self.propmt+'Skip '+basename+': Exists.'+' '*10)
+					#THREAD_PROGRESS[self.id-1]['finishcount']+=1
+                    #THREAD_PROGRESS[self.id-1]['skipcount']+=1
             elif opath.exists(filename) and self.skip_exist=='2' and \
             urlget(self.src['full'],True,self.retries,self.chunk_size,opath.getsize(filename),\
                 self.src['referpage'],self.id-1,self.report)=='SAME':
                     self.tprint(fmttime()+self.propmt+'Skip '+basename+': Same size.'+' '*5)
-                    THREAD_PROGRESS[self.id-1]['finishcount']+=1
-                    THREAD_PROGRESS[self.id-1]['skipcount']+=1
+                    #THREAD_PROGRESS[self.id-1]['finishcount']+=1
+                    #THREAD_PROGRESS[self.id-1]['skipcount']+=1
             else:#不存在 或 2&&大小不符
                 self.tprint(fmttime()+self.propmt+'Start '+basename+'.')
                 #print '\b%sDownloading %3d/%3d images: %s ->' % (fmttime(),i+1,PICQUEUE.qsize(),basename)
@@ -362,7 +364,7 @@ class reportthread(threading.Thread):
                 downcount+=THREAD_PROGRESS[i]['finishcount']
                 queuesize+=THREAD_PROGRESS[i]['picsize']
                 downloadsize+=THREAD_PROGRESS[i]['downsize']
-                totaldownloadsize+=THREAD_PROGRESS[i]['totalsize']
+                totaldownloadsize+=THREAD_PROGRESS[i]['finishsize']
                 if THREAD_PROGRESS[i]['inittime']==-1 or THREAD_PROGRESS[i]['inittime']==0:
                     livethread-=1
             #eta=time.strftime('%M:%S', time.localtime((time.time()-init_time)*(100-percent)/percent))
@@ -773,12 +775,12 @@ def main():
     if THREADS>1:
         report=reportthread(reportqueue)
         report.start()
-    skipcount=0
+    finishcount=0
     for i in range(THREADS):
         threadlist[i].join(10)
-        skipcount+=THREAD_PROGRESS[i]['skipcount']
+        finishcount+=THREAD_PROGRESS[i]['finishcount']
     if THREADS>1:report.join()
-    print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures ('+str(totaldowncount-skipcount)+' new) saved under '+working_dir)
+    print(' '*66+'\b'*140+fmttime()+'Download finished.\n'+str(totaldowncount)+' pictures ('+str(finishcount)+' new) saved under '+working_dir)
     os.remove(working_dir+opath.sep+'.roameproject')
     write_timestamp(working_dir,ratiolist,projname)
     
