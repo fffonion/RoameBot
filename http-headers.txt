@@ -1,0 +1,50 @@
+﻿common get:
+GET / HTTP/1.1
+Host: www.roame.net
+Connection: keep-alive
+User-Agent: Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Maxthon/4.0.3.6000 Chrome/22.0.1229.79 Safari/537.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+DNT: 1
+Accept-Encoding: gzip,deflate
+Accept-Language: zh-CN
+Accept-Charset: GBK,utf-8;q=0.7,*;q=0.3
+Cookie: 
+
+roamebot:
+GET /index/sousei-no-aquarion/images/index-wall.html HTTP/1.1
+Accept-Encoding: identity
+Host: www.roame.net
+Connection: close
+User-Agent: Mozilla/6.4.0 (Windows NT 5.2) AppleWebKit/537.3 (KHTML, like Gecko) Chrome/26.7.1759.3 Safari/536.2 RoameBot/2.21 fix
+
+
+----------------------------------------------------------------------------------------------------
+
+AJAX:
+POST /ajax.php?a=6656&_nc=1363789484806 HTTP/1.1
+Host: www.roame.net
+Connection: keep-alive
+Content-Length: 71
+Origin: http://www.roame.net
+User-Agent: Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Maxthon/4.0.3.6000 Chrome/22.0.1229.79 Safari/537.1
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+DNT: 1
+Referer: http://www.roame.net/
+Accept-Encoding: gzip,deflate
+Accept-Language: zh-CN
+Accept-Charset: GBK,utf-8;q=0.7,*;q=0.3
+Cookie: 
+
+
+roamebot:
+POST /ajax.php?a=4098&_nc=1363790115 HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 47
+Host: www.roame.net
+Content-Type: application/x-www-form-urlencoded
+Connection: close
+User-Agent: Python-urllib/2.7
+
+m=araragikun&p=b0848db3cd43eb4fa72e599a00a24663
+

@@ -4,33 +4,33 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.21 fix'
+__version__ = '2.3'
 
 import urllib2,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
  base64 as b64,Queue,random,threading,re,time
 #---全局变量
+#已下载，总大小，开始时间，总下载数量，总下载大小，跳过数量
+THREADS=25
+THREAD_PROGRESS=[{'downsize':0,'picsize':0,'inittime':0,'finishcount':0,'finishsize':0,'skipcount':0}]*THREADS
 PICQUEUE=Queue.Queue()
 FILTER={}
 COOKIE=[]
 HOMEURL='http://www.roame.net'
 TIMESTAMP=0
 #缓存变量
-LATESTCONTENT=''
+#LATESTCONTENT=''
 INDEXLIST=[]
 #---全局常量
 RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth','-weqh']
 BUILT_IN_SUFFIX=['','-pic-16x9','-pic-16x10','-pic-4x3','-pic-5x4','-pic-wgth','-pic-wlth','-pic-weqh','','',\
-                '-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
-                '-hotest-monthlyscore','-others-latest','-others-random']
+        '-hotest-down','-hotest-weeklydown','-hotest-monthlydown','-hotest-score',\
+        '-hotest-monthlyscore','-others-latest','-others-random']
 THREAD_NAME=['Almond','Banana','Cherry','Damson','Emblic','Foxnut','Ginkgo','Hotdog','iPhone','Jujube','Kernel','Lichee','Medlar','Nyanko','Orange','Papaya','Qiviut','R','S','T','U','V','W','X','Y','Z']
 GET_INTERVAL=0.1
-THREADS=25
 BUILTINUSER=15
-#已下载，总大小，开始时间，总下载数量，总下载大小，跳过数量
-THREAD_PROGRESS=[{'downsize':0,'picsize':0,'inittime':0,'finishcount':0,'finishsize':0,'skipcount':0}]*THREADS
 LOGPATH='roamebot.log'
-
+TEMPPATH=''
 #---工具：网络
 def mkcookie():
     """
@@ -83,19 +83,20 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
         req = urllib2.Request(src)
         ua='Mozilla/'+rrange(4,7,10)+'.0 (Windows NT '+rrange(5,7)+'.'+rrange(0,3)+') AppleWebKit/'+rrange(535,538,10)+\
         ' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)+' RoameBot/'+__version__
-        req.add_header('User-Agent', ua)
-        #req.add_header('Referer', referer)
-        if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
-        #打开回复
-        resp = urllib2.urlopen(req)
-        #resp.info()
-        content=''
-        total_size=None
-        sleep_retry=1
-        #处理内容
-        #urlget会下载网页或者图片
-        #网页抓得快不会挂掉；图片抓得快会返回text/html，url错误会返回text/html，内容为oops(2)，url过期会返回8843字节的防盗链图
+        
         if getimage:#下载图片的话（或者在线更新
+            req.add_header('User-Agent', ua)
+            #req.add_header('Referer', referer)
+            if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
+            #打开回复
+            resp = urllib2.urlopen(req)
+            #resp.info()
+            content=''
+            total_size=None
+            sleep_retry=1
+            #处理内容
+            #urlget会下载网页或者图片
+            #网页抓得快不会挂掉；图片抓得快会返回text/html，url错误会返回text/html，内容为oops(2)，url过期会返回8843字节的防盗链图
             while total_size==None:
                 total_size=resp.info().getheader('Content-Length')
                 time.sleep(GET_INTERVAL*sleep_retry)#服务器太捉鸡……睡一觉
@@ -139,7 +140,12 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
                     chunk_report(bytes_got, chunk_size, total_size,init_time)
             #content=chunk_read(resp, chunk*1024,chunk_report)
         else:#直接读取
-            content = resp.read()#.decode('utf-8')
+            try:
+                import httplib2plus as htlib2
+                resp,content = htlib2.Http(TEMPPATH).request(src,headers={'connection':'keep-alive'})
+                if int(resp['status'])>=400:raise urllib2.HTTPError
+            except ImportError:
+                content = urllib2.urlopen(src).read()
         #返回上级
         return content
     except urllib2.URLError,e:#错误处理 
@@ -147,28 +153,30 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
             report('Connection timed out. Retrying '+str(retries)+' times.',reportQ)#超时
             return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,reportQ)
         else:
-                report('Failed on '+src,reportQ)
-                return None
+            report('Failed on '+src,reportQ)
+            return None
     except urllib2.HTTPError,e:
         if retries>0:#重试处理
-            if  e.code>=400:#客户端错误或服务器错误
-                report('URL broken. Re-parsing from referer page.',reportQ)
-                src=parse_fullsize(referer)
-                return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,report)
+            report('URL broken. Re-parsing from referer page.',reportQ)
+            src=parse_fullsize(referer)
+            return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,report)
         else:
-                report('Failed on '+src,reportQ)
-                return None
-def init_proxy():
+            report('Failed on '+src,reportQ)
+            return None
+def init():
     """
-    安装urllib2的代理
+    初始化变量等
     """
+    #安装urllib2的代理
     if read_config('download','proxy')!='':
         proxy_support = urllib2.ProxyHandler({'http':'http://['+read_config('download','proxy_name')\
                                             +']:['+read_config('download','proxy_pswd')+']@['\
                                             +read_config('download','proxy')+']'})
         opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
         urllib2.install_opener(opener)
-        
+    global TEMPPATH
+    TEMPPATH=read_config('download','use_cache')=='1' and os.environ["TMP"]+os.sep+'.roame' or ''
+ 
 def load_remote_picqueue(nextpage,firstpagenum,workingdir,ratiolist,ignore_timestamp=False):
     """
     循环调用正则处理图片url
@@ -383,11 +391,13 @@ class reportthread(threading.Thread):
             time.sleep(sleeptime)
 
 #---正则处理
-def parse_albumname(url):
+def parse_albumname_entry(url):
     """
-    正则处理番组名称
+    正则处理番组名称及番组入口url
     
-  Returns albumname TUPLE: 0=CHN, 1=ENG, 2=JPN
+  Returns albumname,entry
+  albumname = TUPLE: 0=CHN, 1=ENG, 2=JPN
+  entry = list: url, name, picnum
     """
     content=urlget(url)
     #exp :<title>夏目友人帐 - 英文名:Natsume Yuujinchou, 日文名:夏目友人帳 - 路游动漫图片壁纸网</title>
@@ -396,15 +406,7 @@ def parse_albumname(url):
     if albumname==[]:albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
     albumname_legal=[]
     albumname_legal+=[albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' ') for i in range(len(albumname[0]))]
-    return albumname_legal
-
-def parse_entry(url):
-    """
-  正则处理番组入口url
-  
- Returns: entry list
-    """
-    content=urlget(url)
+    
     entries=[]
     #exp <strong style="margin:0px;padding:0px">中二病也要谈恋爱 BD VOL.1</strong>
     allentries=re.findall('<h2>(.*?)</strong>',content,re.DOTALL)
@@ -413,18 +415,18 @@ def parse_entry(url):
                     re.findall('2px">(\d+)</span',allentries[i])[0],
                     re.findall('0px">(.+)$',allentries[i])[0]])
         print_c('入口'+str(i+1)+': '+entries[-1][2].decode('utf-8')+' ('+str(entries[-1][1])+'p)')
-    return entries
+    return albumname_legal,entries
 
 def parse_latest():
     """
     处理主页上最新图片并选择入口，写入config.ini
     """
-    global LATESTCONTENT
-    LATESTCONTENT=LATESTCONTENT=='' and urlget(HOMEURL) or LATESTCONTENT
+    #global LATESTCONTENT
+    #LATESTCONTENT=LATESTCONTENT=='' and urlget(HOMEURL) or LATESTCONTENT
     #<div class="imagesr"><span>4小时前（2013-02-28 09:44）</span></div>
     #<div class="imagescatname"><a href="http://www.roame.net/index/hatsune-miku-kagamine/images">初音未来/镜音双子图片壁纸</a></div>
     #:28px;margin-left:4px">共更新了<b>18</b>张，点此查看更多 ...</a>
-    allblocks=re.findall('em">(.*?) class="it',LATESTCONTENT,re.DOTALL)
+    allblocks=re.findall('em">(.*?) class="it',urlget(HOMEURL),re.DOTALL)
     updatetime=[]
     entries=[]
     deltanum=[]
@@ -636,7 +638,7 @@ def first_run():
     """
     filename = getPATH0()+opath.sep+'config.ini'
     f=file(filename,'w')
-    f.write('[download]\nskip_exist = 2\ndownload_when_parse = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
+    f.write('[download]\nskip_exist = 2\nuse_cache = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
     \ndir_name = 2\ndir_path = \nname = hyouka\nthreads = 3\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
     \nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n\n[filter_0]\nratio = 1|7\
     \nmax_length =     \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \
@@ -713,8 +715,7 @@ def main():
             write_config('download','name',projname)
             entry=['/index/'+projname+'/images','0']
         else:#正常模式
-            namelist=parse_albumname(HOMEURL+'/index/'+projname)
-            entry=parse_entry(HOMEURL+'/index/'+projname)
+            namelist,entry=parse_albumname_entry(HOMEURL+'/index/'+projname)
             try    :
                 if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1]
                 else:entry=entry[0]
@@ -830,7 +831,7 @@ def search():
     print_c('找到'+str(count)+'个结果 ㄟ( ▔, ▔ )ㄏ')
     if count > 0:
         try:
-            input=raw_input('> ') or '1'
+            input=raw_input('> ') or '0'
             if 0<int(input)<count+1:
                 write_config('download','name',urllist[int(input)-1])
             else:    raise ValueError
@@ -892,7 +893,7 @@ if __name__ == '__main__':
     try:
         if not opath.exists(getPATH0()+opath.sep+'config.ini'):#first time
             first_run()
-        init_proxy()
+        init()
         uname=read_config('cookie','uname')
         if uname=='':loginopt='!未登录'
         else:loginopt='已登录('+uname+')'

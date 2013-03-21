@@ -33,8 +33,8 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 ***
 ####skip_exist
 是否跳过已存在的文件，2-是，且比较文件大小[默认]，1-是，0-否
-####download_when_parse 
-是否边分析页面边下载，1-是[默认]，0-否，
+####use_cache
+是否使用缓存（保存在系统临时目录\.roame下），1-是[默认]，0-否，
 ####timeout
 设置超时时间，单位为秒,默认为10
 ####chunksize
