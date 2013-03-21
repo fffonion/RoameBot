@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.21 fix'
+__version__ = '2.3'
 
 import urllib2,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -83,19 +83,20 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
         req = urllib2.Request(src)
         ua='Mozilla/'+rrange(4,7,10)+'.0 (Windows NT '+rrange(5,7)+'.'+rrange(0,3)+') AppleWebKit/'+rrange(535,538,10)+\
         ' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)+' RoameBot/'+__version__
-        req.add_header('User-Agent', ua)
-        #req.add_header('Referer', referer)
-        if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
-        #打开回复
-        resp = urllib2.urlopen(req)
-        #resp.info()
-        content=''
-        total_size=None
-        sleep_retry=1
-        #处理内容
-        #urlget会下载网页或者图片
-        #网页抓得快不会挂掉；图片抓得快会返回text/html，url错误会返回text/html，内容为oops(2)，url过期会返回8843字节的防盗链图
+        
         if getimage:#下载图片的话（或者在线更新
+            req.add_header('User-Agent', ua)
+            #req.add_header('Referer', referer)
+            if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
+            #打开回复
+            resp = urllib2.urlopen(req)
+            #resp.info()
+            content=''
+            total_size=None
+            sleep_retry=1
+            #处理内容
+            #urlget会下载网页或者图片
+            #网页抓得快不会挂掉；图片抓得快会返回text/html，url错误会返回text/html，内容为oops(2)，url过期会返回8843字节的防盗链图
             while total_size==None:
                 total_size=resp.info().getheader('Content-Length')
                 time.sleep(GET_INTERVAL*sleep_retry)#服务器太捉鸡……睡一觉
@@ -139,7 +140,12 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
                     chunk_report(bytes_got, chunk_size, total_size,init_time)
             #content=chunk_read(resp, chunk*1024,chunk_report)
         else:#直接读取
-            content = resp.read()#.decode('utf-8')
+            try:
+                import httplib2plus as htlib2
+                resp,content = htlib2.Http().request(src,headers={'connection':'keep-alive'})
+                if int(resp['status'])>=400:raise urllib2.HTTPError
+            except ImportError:
+                content = urllib2.urlopen(src).read()
         #返回上级
         return content
     except urllib2.URLError,e:#错误处理 
@@ -147,17 +153,16 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
             report('Connection timed out. Retrying '+str(retries)+' times.',reportQ)#超时
             return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,reportQ)
         else:
-                report('Failed on '+src,reportQ)
-                return None
+            report('Failed on '+src,reportQ)
+            return None
     except urllib2.HTTPError,e:
         if retries>0:#重试处理
-            if  e.code>=400:#客户端错误或服务器错误
-                report('URL broken. Re-parsing from referer page.',reportQ)
-                src=parse_fullsize(referer)
-                return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,report)
+            report('URL broken. Re-parsing from referer page.',reportQ)
+            src=parse_fullsize(referer)
+            return urlget(src,getimage,retries-1,chunk_size,downloaded,referer,cookieid,report)
         else:
-                report('Failed on '+src,reportQ)
-                return None
+            report('Failed on '+src,reportQ)
+            return None
 def init_proxy():
     """
     安装urllib2的代理
@@ -383,11 +388,13 @@ class reportthread(threading.Thread):
             time.sleep(sleeptime)
 
 #---正则处理
-def parse_albumname(url):
+def parse_albumname_entry(url):
     """
-    正则处理番组名称
+    正则处理番组名称及番组入口url
     
-  Returns albumname TUPLE: 0=CHN, 1=ENG, 2=JPN
+  Returns albumname,entry
+  albumname = TUPLE: 0=CHN, 1=ENG, 2=JPN
+  entry = list: url, name, picnum
     """
     content=urlget(url)
     #exp :<title>夏目友人帐 - 英文名:Natsume Yuujinchou, 日文名:夏目友人帳 - 路游动漫图片壁纸网</title>
@@ -396,15 +403,7 @@ def parse_albumname(url):
     if albumname==[]:albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
     albumname_legal=[]
     albumname_legal+=[albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' ') for i in range(len(albumname[0]))]
-    return albumname_legal
-
-def parse_entry(url):
-    """
-  正则处理番组入口url
-  
- Returns: entry list
-    """
-    content=urlget(url)
+    
     entries=[]
     #exp <strong style="margin:0px;padding:0px">中二病也要谈恋爱 BD VOL.1</strong>
     allentries=re.findall('<h2>(.*?)</strong>',content,re.DOTALL)
@@ -413,7 +412,7 @@ def parse_entry(url):
                     re.findall('2px">(\d+)</span',allentries[i])[0],
                     re.findall('0px">(.+)$',allentries[i])[0]])
         print_c('入口'+str(i+1)+': '+entries[-1][2].decode('utf-8')+' ('+str(entries[-1][1])+'p)')
-    return entries
+    return albumname_legal,entries
 
 def parse_latest():
     """
@@ -713,8 +712,7 @@ def main():
             write_config('download','name',projname)
             entry=['/index/'+projname+'/images','0']
         else:#正常模式
-            namelist=parse_albumname(HOMEURL+'/index/'+projname)
-            entry=parse_entry(HOMEURL+'/index/'+projname)
+            namelist,entry=parse_albumname_entry(HOMEURL+'/index/'+projname)
             try    :
                 if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1]
                 else:entry=entry[0]
