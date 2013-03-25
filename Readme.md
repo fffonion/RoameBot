@@ -79,10 +79,8 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 仅下载前多少页，留空为不限
 ####proxy
 设置代理路径，留空则跟随IE代理
-####proxy_name
-代理用户名
-####proxy_pswd
-代理密码
+####proxy_urlarg, proxy_arg
+设置指南，如果一个在线代理在不开启url加密、启用cookie时的url为：http://a.co/b.php?u=baidu.com&b=4, 则proxy填入http://a.co/b.php, proxy_urlarg填入u, proxy_arg填入b=4
 ####[filter]过滤器块
 ***
 默认的过滤器名称为filter_0
@@ -122,6 +120,6 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 cookie的内容，用|分割，添加教程见(https://github.com/fffonion/RoameBot/wiki/Add-custom-cookie)
 
 ##授权
-[GPLv2授权](http://opensource.org/licenses/gpl-2.0.php)
+[CC BY-3.0授权](http://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0协议文本)
 ***
 ![@fffonion](http://img.t.sinajs.cn/t5/style/images/register/logo.png)[@fffonion](http://weibo.com/376463435)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Blog](http://zmingcx.com/wp-content/themes/HotNewspro/images/caticon/wordpress.gif)[博客](http://www.yooooo.us)

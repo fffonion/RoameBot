@@ -4,9 +4,9 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3'
+__version__ = '2.31'
 
-import urllib2,socket,\
+import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
  base64 as b64,Queue,random,threading,re,time
 #---全局变量
@@ -19,7 +19,7 @@ COOKIE=[]
 HOMEURL='http://www.roame.net'
 TIMESTAMP=0
 #缓存变量
-#LATESTCONTENT=''
+LATESTCONTENT=''
 INDEXLIST=[]
 #---全局常量
 RATIO_SUFFIX=['','-wall','-16x10','-16x9','-4x3','-5x4','-oall','-wgth','-wlth','-weqh']
@@ -70,6 +70,23 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
     """
    urllib2实现的下载函数
     """
+    header={'X-Forward-For':'125.124.138.198','connection':'keep-alive'}
+    pxyarg=read_config('download','proxy_arg')
+    pxyurlarg=read_config('download','proxy_urlarg')
+    pxy=read_config('download','proxy')+'?'+pxyarg+'&'+pxyurlarg+'='
+    if pxy:
+        pxybase='http://'+re.findall('http://(.*?)/',pxy)[0]
+        pxyleft=pxy.replace(pxybase,'')
+        #?b=4&u=
+        pxyleftcore=pxyleft.replace('?'+pxyarg+'&'+pxyurlarg+'=','?'+pxyurlarg+'=')
+        header['referer']=pxybase+'/index.php'
+        src=urllib.unquote(src).replace('http://www.roame.net'+pxyleft,'').replace('&amp;','&')
+        if src.startswith(pxyleftcore):
+            src=urllib.unquote(src).replace(pxyleftcore,'')
+        if not src.startswith(pxybase):
+            src=pxy+urllib.quote_plus(src)
+        src=src.replace(urllib.quote_plus('&'+pxyarg),'')
+        #cnt=src.count('http')
     #print src
     if cookieid==-1:prompt=''
     else:prompt=THREAD_NAME[cookieid]+': '
@@ -83,7 +100,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
         req = urllib2.Request(src)
         ua='Mozilla/'+rrange(4,7,10)+'.0 (Windows NT '+rrange(5,7)+'.'+rrange(0,3)+') AppleWebKit/'+rrange(535,538,10)+\
         ' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)+' RoameBot/'+__version__
-        
+        header['User-agent']=ua
         if getimage:#下载图片的话（或者在线更新
             req.add_header('User-Agent', ua)
             #req.add_header('Referer', referer)
@@ -142,7 +159,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
         else:#直接读取
             try:
                 import httplib2plus as htlib2
-                resp,content = htlib2.Http(TEMPPATH).request(src,headers={'connection':'keep-alive'})
+                resp,content = htlib2.Http(TEMPPATH).request(src,headers=header)
                 if int(resp['status'])>=400:raise urllib2.HTTPError
             except ImportError:
                 content = urllib2.urlopen(src).read()
@@ -168,14 +185,16 @@ def init():
     初始化变量等
     """
     #安装urllib2的代理
+    global TEMPPATH
+    TEMPPATH=read_config('download','use_cache')=='1' and os.environ["TMP"]+os.sep+'.roame' or ''
+    return
     if read_config('download','proxy')!='':
         proxy_support = urllib2.ProxyHandler({'http':'http://['+read_config('download','proxy_name')\
                                             +']:['+read_config('download','proxy_pswd')+']@['\
                                             +read_config('download','proxy')+']'})
         opener = urllib2.build_opener(proxy_support, urllib2.HTTPHandler)
         urllib2.install_opener(opener)
-    global TEMPPATH
-    TEMPPATH=read_config('download','use_cache')=='1' and os.environ["TMP"]+os.sep+'.roame' or ''
+   
  
 def load_remote_picqueue(nextpage,firstpagenum,workingdir,ratiolist,ignore_timestamp=False):
     """
@@ -303,13 +322,16 @@ class getimgthread(threading.Thread):
             self.report.put(str)
         else:
             print(str)
-
+    def makesense(self,str):
+        pxyarg=read_config('download','proxy_arg')
+        #pxyurlarg=read_config('download','proxy_urlarg')
+        return urllib.unquote(str).replace(pxyarg,'').replace('&amp;','')
     def run(self):
         global THREAD_PROGRESS
         self.tprint(fmttime()+self.propmt+'Started.')
         while not PICQUEUE.empty():
             self.src=PICQUEUE.get()
-            basename=re.findall('/([A-Za-z0-9._]+)$',self.src['full'])[0]#切割文件名
+            basename=re.findall('.+/([A-Za-z0-9._]+)',self.makesense(self.src['full']))[0]#切割文件名
             filename=self.workingdir+opath.sep+basename
             #urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
             if opath.exists(filename) and self.skip_exist=='1':#存在则跳过
@@ -421,12 +443,12 @@ def parse_latest():
     """
     处理主页上最新图片并选择入口，写入config.ini
     """
-    #global LATESTCONTENT
-    #LATESTCONTENT=LATESTCONTENT=='' and urlget(HOMEURL) or LATESTCONTENT
+    global LATESTCONTENT
+    LATESTCONTENT=LATESTCONTENT=='' and urlget(HOMEURL) or LATESTCONTENT
     #<div class="imagesr"><span>4小时前（2013-02-28 09:44）</span></div>
     #<div class="imagescatname"><a href="http://www.roame.net/index/hatsune-miku-kagamine/images">初音未来/镜音双子图片壁纸</a></div>
     #:28px;margin-left:4px">共更新了<b>18</b>张，点此查看更多 ...</a>
-    allblocks=re.findall('em">(.*?) class="it',urlget(HOMEURL),re.DOTALL)
+    allblocks=re.findall('em">(.*?) class="it',LATESTCONTENT,re.DOTALL)
     updatetime=[]
     entries=[]
     deltanum=[]
@@ -640,7 +662,7 @@ def first_run():
     f=file(filename,'w')
     f.write('[download]\nskip_exist = 2\nuse_cache = 1\ntimeout = 10\nchunksize = 8\nretries = 3\
     \ndir_name = 2\ndir_path = \nname = hyouka\nthreads = 3\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
-    \nfirst_page_num = \nproxy = \nproxy_name = \nproxy_pswd = \n\n[filter_0]\nratio = 1|7\
+    \nfirst_page_num = \nproxy = \nproxy_arg = \nproxy_urlarg = \n\n[filter_0]\nratio = 1|7\
     \nmax_length =     \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \
     \n\n[cookie]\nuname =')
     f.flush()
