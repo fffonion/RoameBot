@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.31'
+__version__ = '2.3.1.0'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -74,7 +74,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
     pxyarg=read_config('download','proxy_arg')
     pxyurlarg=read_config('download','proxy_urlarg')
     pxy=read_config('download','proxy')+'?'+pxyarg+'&'+pxyurlarg+'='
-    if pxy:
+    if read_config('download','proxy'):
         pxybase='http://'+re.findall('http://(.*?)/',pxy)[0]
         pxyleft=pxy.replace(pxybase,'')
         #?b=4&u=
@@ -99,7 +99,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
         rrange=lambda a,b,c=1: str(c==1 and random.randrange(a,b) or float(random.randrange(a*c,b*c))/c)
         req = urllib2.Request(src)
         ua='Mozilla/'+rrange(4,7,10)+'.0 (Windows NT '+rrange(5,7)+'.'+rrange(0,3)+') AppleWebKit/'+rrange(535,538,10)+\
-        ' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)+' RoameBot/'+__version__
+        ' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)
         header['User-agent']=ua
         if getimage:#下载图片的话（或者在线更新
             req.add_header('User-Agent', ua)
@@ -268,7 +268,11 @@ def mklogin():
         return '已登录('+uname+')'
     else:
         print_c('登陆失败'+(len(result)>2 and '：'+result[2][1:-1].decode('unicode-escape') or ''))
-    
+
+def makesense(str):
+    pxyarg=read_config('download','proxy_arg')
+    #pxyurlarg=read_config('download','proxy_urlarg')
+    return urllib.unquote(str).replace(pxyarg,'').replace('&amp;','')        
 #---工具：本地        
 def getPATH0():
     """
@@ -322,16 +326,13 @@ class getimgthread(threading.Thread):
             self.report.put(str)
         else:
             print(str)
-    def makesense(self,str):
-        pxyarg=read_config('download','proxy_arg')
-        #pxyurlarg=read_config('download','proxy_urlarg')
-        return urllib.unquote(str).replace(pxyarg,'').replace('&amp;','')
+
     def run(self):
         global THREAD_PROGRESS
         self.tprint(fmttime()+self.propmt+'Started.')
         while not PICQUEUE.empty():
             self.src=PICQUEUE.get()
-            basename=re.findall('.+/([A-Za-z0-9._]+)',self.makesense(self.src['full']))[0]#切割文件名
+            basename=re.findall('.+/([A-Za-z0-9._]+)',makesense(self.src['full']))[0]#切割文件名
             filename=self.workingdir+opath.sep+basename
             #urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
             if opath.exists(filename) and self.skip_exist=='1':#存在则跳过
@@ -421,14 +422,17 @@ def parse_albumname_entry(url):
   albumname = TUPLE: 0=CHN, 1=ENG, 2=JPN
   entry = list: url, name, picnum
     """
-    content=urlget(url)
+    content=makesense(urlget(url))
     #exp :<title>夏目友人帐 - 英文名:Natsume Yuujinchou, 日文名:夏目友人帳 - 路游动漫图片壁纸网</title>
-    albumname=re.findall('title>(.+) -.+:(.+),.+:(.+) -',content)
-    #no jp exp :<title>阿倍野挢魔法商店街 - 英文名:Magical Shopping Arcade Abenobashi - 路游动漫图片壁纸网</title>
-    if albumname==[]:albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
-    albumname_legal=[]
-    albumname_legal+=[albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' ') for i in range(len(albumname[0]))]
-    
+    if not read_config('download','proxy'):
+        albumname=re.findall('title>(.+) -.+:(.+),.+:(.+) -',content)
+        #no jp exp :<title>阿倍野挢魔法商店街 - 英文名:Magical Shopping Arcade Abenobashi - 路游动漫图片壁纸网</title>
+        if albumname==[]:albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
+        albumname_legal=[]
+        albumname_legal+=[albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' ') for i in range(len(albumname[0]))]
+    else:
+        albumname=re.findall('class="hdrloci">(.*?)</a>',content)
+        albumname_legal=[albumname[2]]+['','']
     entries=[]
     #exp <strong style="margin:0px;padding:0px">中二病也要谈恋爱 BD VOL.1</strong>
     allentries=re.findall('<h2>(.*?)</strong>',content,re.DOTALL)
@@ -444,7 +448,7 @@ def parse_latest():
     处理主页上最新图片并选择入口，写入config.ini
     """
     global LATESTCONTENT
-    LATESTCONTENT=LATESTCONTENT=='' and urlget(HOMEURL) or LATESTCONTENT
+    LATESTCONTENT=LATESTCONTENT=='' and makesense(urlget(HOMEURL)) or LATESTCONTENT
     #<div class="imagesr"><span>4小时前（2013-02-28 09:44）</span></div>
     #<div class="imagescatname"><a href="http://www.roame.net/index/hatsune-miku-kagamine/images">初音未来/镜音双子图片壁纸</a></div>
     #:28px;margin-left:4px">共更新了<b>18</b>张，点此查看更多 ...</a>
@@ -482,7 +486,7 @@ def parse_pagelist(url,pagenum,mode=0):
     global PICQUEUE
     up_to_date=False
     today_mode=False
-    content=urlget(url)
+    content=makesense(urlget(url))
     print('Parsing...'+'\b'*10),
     singlepic=re.findall('/h[23]>(.*?)<div',content,re.DOTALL)#singlepic 包含 thumb and full-size page url
     #<div style="color:#456"><span style="color:#abc;font-size:10px">by</span> <u>EUREKASEVEN</u></div>
@@ -521,7 +525,7 @@ def parse_pagelist(url,pagenum,mode=0):
             picelem[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
             #多线程抓取类启动
             fullpagethread.append(parse_fullsize(picelem[-1]['referpage'],fullurllist,len(picelem)-1))#偏移使用当前长度
-            fullpagethread[-1].start()
+            if not read_config('download','proxy'):fullpagethread[-1].start()
             #picelem[i]['full']=parse_fullsize(picelem[i]['referpage'])
             picelem[-1]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
             picelem[-1]['width']=picsize[i][0]#图宽
@@ -530,8 +534,13 @@ def parse_pagelist(url,pagenum,mode=0):
             picelem[-1]['format']=len(picinfo[i])==2 and 'UNKNOWN' or picinfo[i][0]#today模式没有文件格式
     #多线程抓取类同步
     #不能使用singlepic因为增量更新的需要，需要截去一部分
-    for i in range(len(picelem)):
-        fullpagethread[i].join()
+    if read_config('download','proxy'):
+        for i in range(len(picelem)):
+            fullpagethread[i].start()
+            fullpagethread[i].join()
+    else:
+        for i in range(len(picelem)):
+            fullpagethread[i].join()
     for i in range(len(picelem)):
         picelem[i]['full']=fullurllist[i]
         PICQUEUE.put_nowait(picelem[i])
@@ -551,7 +560,15 @@ class parse_fullsize(threading.Thread):
     def run(self):
         content=urlget(self.url)
         deeperpage=re.findall('darlnks">.+index.html.+href="(.*?)" style.+display:block',content,re.DOTALL)#goto download page
-        content=urlget(deeperpage[0])
+        url=deeperpage[0]
+        if read_config('download','proxy'):
+            pxyarg=read_config('download','proxy_arg')
+            pxyurlarg=read_config('download','proxy_urlarg')
+            pxy=read_config('download','proxy')+'?'+pxyarg+'&'+pxyurlarg+'='
+            url=urllib.quote_plus(url.replace(HOMEURL+'?'+pxyurlarg+'=').replace(pxy,''))
+            if not url.startswith('http'):url=HOMEURL+url
+            url=pxy+urllib.quote_plus(url)
+        content=urlget(url)
         picurl=re.findall('src="(.+)" style="background',content)
         self.reslist[self.index]=picurl[0]
 
@@ -824,8 +841,9 @@ def search():
         #原来list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)</a>',content)
         #不！我不会向不讲规范的站长低头的！！
         #只要使用预处理大法并且第二、三个匹配变成非贪婪即可！这样>GOSICK</a>变成>GOSICK - </a啦~我怎么就那么笨呢wwwww
-        content=content.replace('</a',' - </a')
-        INDEXLIST=re.findall('<a href="/index/([0-9a-z-]+)">(.*?) - (.*?)( - )?</a',content)
+        content=makesense(content.replace('</a',' - </a'))
+        #print content
+        INDEXLIST=re.findall('<a href=".*/index/([0-9a-z-]+)">(.*?) - (.*?)( - )?</a',content)
         #debug用
         """list2=re.findall('<a href="/index/([0-9a-z-]+)">(.+)[ -]*(.*)</a>',content)
         print len(INDEXLIST),len(list2)
