@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.1.0'
+__version__ = '2.3.2.0'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -159,7 +159,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
         else:#直接读取
             try:
                 import httplib2plus as htlib2
-                resp,content = htlib2.Http(TEMPPATH).request(src,headers=header)
+                resp,content = htlib2.Http(TEMPPATH).request(src,headers=header,method='GET')
                 if int(resp['status'])>=400:raise urllib2.HTTPError
             except ImportError:
                 content = urllib2.urlopen(src).read()
@@ -279,8 +279,8 @@ def getPATH0():
     返回脚本所在路径
     """
     if opath.split(sys.argv[0])[1].find('py')!=-1:#is script
-        return sys.path[0]
-    else:return sys.path[1]
+        return sys.path[0].decode(sys.getfilesystemencoding())
+    else:return sys.path[1].decode(sys.getfilesystemencoding())
 
 def print_c(str,singleline=False):
     """
@@ -906,8 +906,8 @@ def update():
     """
     在线更新
     """
-    newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt")
-    notification=urlget("https://raw.github.com/fffonion/RoameBot/master/notification.txt")
+    newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt",True)
+    notification=urlget("https://raw.github.com/fffonion/RoameBot/master/notification.txt",True)
     global THREADS
     THREADS=1#指定单线程flag
     if newver!=__version__:
