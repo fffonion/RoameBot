@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.3.1'
+__version__ = '2.3.3.2'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -912,6 +912,7 @@ def quick_filter():
             write_config('download','name','misc')
         elif input==17:
             while search_select('RANDOM-TEN-MODE', random.sample(parse_indexlist(),10)):pass
+            return
         else:
             raise ValueError
     except ValueError:#熊孩子没有输入数字
