@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.3.0'
+__version__ = '2.3.3.1'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -235,7 +235,7 @@ def mklogin():
     if name!='':
         write_config('cookie','uname','')
         del_option('cookie',name)
-        print_c('已退出~')
+        _print('已退出~')
         return
     #ajax提交，返回均为json，直接用，分割算了
     name=raw_input(normstr('请输入用户名：'))
@@ -247,27 +247,27 @@ def mklogin():
     coo=resp.info().getheader('Set-Cookie')
     result=resp.read()[1:-1].split(',')
     if result[1]=='0':
-        print_c('登录成功！已保存Cookie~')
+        _print('登录成功！已保存Cookie~')
         coo=re.findall('uid=(.+); exp.+upw=(.+); exp.+cmd=(.+); exp',str(coo))[0]
         coo='uid='+coo[0]+';upw='+coo[1]+';cmd='+coo[2]
-        print_c('正在获取用户状态……'+'\b'*25)
+        _print('正在获取用户状态……'+'\b'*25)
         req = urllib2.Request('http://www.roame.net/ajax.php?a=769&_nc='+str(int(time.time())))
         req.add_header('Cookie',coo)
         resp=urllib2.urlopen(req,'i=1').read()
         resp=resp.replace('"','').decode('unicode-escape').split(',')
-        print_c(' '*25+'\b'*25+'获取状态成功！')
+        _print(' '*25+'\b'*25+'获取状态成功！')
         #共88组:1,0状态码，3-49界面标签，50 [a@b.com 51 !!name!! 52 成员级 53 2012-07-09
         #54 http:\/\/www.roame.net\/space\ 57 !!id!!] 59 路人 66 [1993 67 7 68 9] 69 19
         #71 [2 (2) 72 60 (60) 73 0.00MB 74 2]
         #85 [100 86 0 87 0]]
         uname=resp[51]
-        print_c('['+uname+'] - '+resp[57][:-1]+'\n用户标识：'+resp[50][1:]+'\n隶属组  ：'+resp[52]+\
+        _print('['+uname+'] - '+resp[57][:-1]+'\n用户标识：'+resp[50][1:]+'\n隶属组  ：'+resp[52]+\
             ' - '+resp[59]+'\n结算信息：积分'+resp[85][1:]+', LYB'+resp[86]+', YLB'+resp[87][:-2])
         write_config('cookie','uname',uname.decode('utf-8').encode('cp936'))
         write_config('cookie',uname.decode('utf-8').encode('cp936'),coo)
         return '已登录('+uname+')'
     else:
-        print_c('登陆失败'+(len(result)>2 and '：'+result[2][1:-1].decode('unicode-escape') or ''))
+        _print('登陆失败'+(len(result)>2 and '：'+result[2][1:-1].decode('unicode-escape') or ''))
 
 def makesense(str):
     pxyarg=read_config('download','proxy_arg')
@@ -282,7 +282,7 @@ def getPATH0():
         return sys.path[0].decode(sys.getfilesystemencoding())
     else:return sys.path[1].decode(sys.getfilesystemencoding())
 
-def print_c(str,singleline=False):
+def _print(str,singleline=False):
     """
   UTF-8 打印函数
     """
@@ -440,7 +440,7 @@ def parse_albumname_entry(url):
         entries.append([re.findall('href="(.+)">',allentries[i])[0],\
                     re.findall('2px">(\d+)</span',allentries[i])[0],
                     re.findall('0px">(.+)$',allentries[i])[0]])
-        print_c('入口'+str(i+1)+': '+entries[-1][2].decode('utf-8')+' ('+str(entries[-1][1])+'p)')
+        _print('入口'+str(i+1)+': '+entries[-1][2].decode('utf-8')+' ('+str(entries[-1][1])+'p)')
     return albumname_legal,entries
 
 def parse_latest():
@@ -465,14 +465,14 @@ def parse_latest():
             entries+=re.findall('imagescatname"><a href="http://www.roame.net/index/(.+)/[a-z0-9-]+">(.+)</a',allblocks[i])
             testdelta=re.findall(':28px;margin-left:4px">共更新了<b>(\d+)</b>张',allblocks[i])
             deltanum.append(testdelta==[] and str(len(re.findall('<a title=',allblocks[i]))) or testdelta[0])
-    print_c('最新上传('+str(len(entries))+')：')
+    _print('最新上传('+str(len(entries))+')：')
     for i in range(len(entries)):
-        print_c(str(i+1)+'.'+entries[i][1].replace('图片壁纸','')+' ('+updatetime[i]+' 更新'+deltanum[i]+'张)')
+        _print(str(i+1)+'.'+entries[i][1].replace('图片壁纸','')+' ('+updatetime[i]+' 更新'+deltanum[i]+'张)')
     try:
         inp=int(raw_input(normstr('\n选择想要进♂入的番组号:')))
         if 0<inp<=len(entries)+1:write_config('download','name',entries[inp-1][0])
     except ValueError:
-        print_c('输数字啊亲(⊙_⊙)\n')
+        _print('输数字啊亲(⊙_⊙)\n')
     else:
         main()
     
@@ -710,7 +710,7 @@ def first_run():
     \n\n[cookie]\nuname =')
     f.flush()
     f.close()
-    print_c("""【首次运行】
+    _print("""【首次运行】
 直接按照菜单项输入数字即可。
 “继续上次任务”选项，可以用来：
 1.恢复上次已中断的任务（直接输入3即可）
@@ -765,7 +765,7 @@ def main():
     ###################开始预处理
     #决定首页
     if projname=='' or 0<projname<20:#today模式
-        print_c('没有指定名称,按照快速筛选(built_in)选项下载')
+        _print('没有指定名称,按照快速筛选(built_in)选项下载')
         nextpage.append(HOMEURL+'/today/index'+BUILT_IN_SUFFIX[int(read_config('download','built_in'))]+'.html')
         namelist=[time.strftime('%Y-%m-%d %H-%M',time.localtime()),'','']
         dir_name=0#only this one
@@ -785,10 +785,10 @@ def main():
                 if len(entry)>1:entry=entry[int(raw_input('> ') or 1)-1]
                 else:entry=entry[0]
             except ValueError:
-                print_c('要输入数字哟~\n')
+                _print('要输入数字哟~\n')
                 return
             
-        print_c(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
+        _print(fmttime()+'Collecting info for : '+namelist[0]+'/'+namelist[1]+'/'+namelist[2])
         #处理比例过滤器,依次构造
         nextpage+=[HOMEURL+entry[0]+'/index'+RATIO_SUFFIX[int(ratiolist[r].strip())]+'.html' for r in range(len(ratiolist))]
         entry[1]=int(entry[1])/8
@@ -797,14 +797,14 @@ def main():
     for i in range(3):
         working_dir=(dir_path+opath.sep+dir_pref+namelist[i]+dir_suff).decode('utf-8')
         if opath.exists(working_dir) and namelist[i]!='':#目录已存在
-            print_c(fmttime()+'Former folder exists. Use that one.')
+            _print(fmttime()+'Former folder exists. Use that one.')
             break#使用之前已使用过的目录
         else:#目录不存在或没有日文名（而且未被选择，否则2已=0） 
             if int(dir_name)==i:#第一次任务
                 os.mkdir(working_dir)
                 break
     #working_dir=(dir_path+opath.sep+dir_pref+namelist[int(dir_name)]+dir_suff).decode('utf-8')#保存目录
-    print_c(fmttime()+'Working directory is: '+working_dir)
+    _print(fmttime()+'Working directory is: '+working_dir)
     ###################开始主处理
     projfile_path=(working_dir+opath.sep+'.roameproject').decode('utf-8')
     if opath.exists(projfile_path) and opath.getsize(projfile_path)!=0:
@@ -860,11 +860,15 @@ def search():
     input=raw_input(normstr('输入关键字: '))
     if sys.platform=='win32':input=input.decode('gb2312')
     else:input=input.decode('utf-8')
-    search_select(input,idx_list)
+    while search_select(input,idx_list):pass
 
 def search_select(input,idx_list):
     count=0
     urllist=[]
+    if input=='RANDOM-TEN-MODE':
+        random_ten_mode=True
+        input=''
+    else:random_ten_mode=False
     #顺序查找并分割打印
     for i in range(len(idx_list)):
         if re.search(input.encode('utf-8'), idx_list[i][1], re.IGNORECASE) or \
@@ -875,24 +879,28 @@ def search_select(input,idx_list):
                 print normstr((str(count)+'.'+idx_list[i][1]+'('+idx_list[i][2]+')').decode('utf-8','ignore'))
             else:
                 print normstr((str(count)+'.'+idx_list[i][1]).decode('utf-8','ignore'))
-    print_c('共有'+str(count)+'个番组选项 ㄟ( ▔, ▔ )ㄏ')
+    _print('共有'+str(count)+'个番组选项 ㄟ( ▔, ▔ )ㄏ'+(random_ten_mode and '\n按回车显示另外十个' or ''))
     if count > 0:
         try:
             input=raw_input('> ') or '0'
+            if random_ten_mode and input=='0':return True
             if 0<int(input)<count+1:
                 write_config('download','name',urllist[int(input)-1])
             else:    raise ValueError
         except ValueError:
-            print_c('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+            _print('别乱按，熊孩子o(￣ヘ￣o＃) \n')
+            return False
         else:
             main()
+            return False
+    return True
     
 def quick_filter():
     """
     快速筛选+未分类xx
     """
-    print_c('显示快速过滤选项：')
-    print_c('0.所有最新\t10.今日下载排行\t15.大家刚下载的\n1.最新16:9\t11.一周下载排行\t16.随机八张图片\n2.最新16:10\t12.30天下载排行\t17.随机十个番组\n3.最新4:3\t13.一周评分排行\n4.最新5:4\t14.30天评分排行\n5.最新其他横向\t\t\t17.未分类画集\n6.最新竖向\t\t\t18.未分类散图\n7.最新等宽')
+    _print('显示快速过滤选项：')
+    _print('0.所有最新\t10.今日下载排行\t15.大家刚下载的\n1.最新16:9\t11.一周下载排行\t16.随机八张图片\n2.最新16:10\t12.30天下载排行\t17.随机十个番组\n3.最新4:3\t13.一周评分排行\n4.最新5:4\t14.30天评分排行\n5.最新其他横向\t\t\t18.未分类画集\n6.最新竖向\t\t\t19.未分类散图\n7.最新等宽')
     try:
         input=int(raw_input('> '))
         if 0<=input<8 or 9<input<17:
@@ -903,11 +911,11 @@ def quick_filter():
         elif input==19:
             write_config('download','name','misc')
         elif input==17:
-           search_select('', random.sample(parse_indexlist(),10))
+            while search_select('RANDOM-TEN-MODE', random.sample(parse_indexlist(),10)):pass
         else:
             raise ValueError
     except ValueError:#熊孩子没有输入数字
-        print_c('[なに？]σ(· ·?) \n')
+        _print('[なに？]σ(· ·?) \n')
     else:
         main()
 
@@ -920,10 +928,10 @@ def update():
     global THREADS
     THREADS=1#指定单线程flag
     if newver!=__version__:
-        print_c('花现新版本Σ( ° △ °|||):'+newver)
+        _print('花现新版本Σ( ° △ °|||):'+newver)
         if opath.split(sys.argv[0])[1].find('py')==-1:#is exe
             ext='.exe'
-            print_c('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
+            _print('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
             filename=getPATH0()+opath.sep+'RoameBot.'+newver+ext
         else:
             ext='.py'
@@ -932,9 +940,9 @@ def update():
         fileHandle=open(filename,'wb')
         fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
         fileHandle.close()
-        print_c('\n更新到了版本：'+newver+'\n[注意事项]\n'+notification)
+        _print('\n更新到了版本：'+newver+'\n[注意事项]\n'+notification)
     else:
-        print_c('已经是最新版本啦更新控：'+__version__)
+        _print('已经是最新版本啦更新控：'+__version__)
         
 
 #---入口        
@@ -949,12 +957,12 @@ if __name__ == '__main__':
         #重设默认编码
         reload(sys)
         sys.setdefaultencoding('utf-8')
-        print_c('「ロアメボット。」'+__version__+'  ·ω·）ノ')
+        _print('「ロアメボット。」'+__version__+'  ·ω·）ノ')
         #if len(sys.argv)==1:
         #菜单
         mkcookie()
         while True:
-            print_c('1.搜索\n2.最新上传\n3.继续上次任务\n4.快速筛选\n5.更新\n6.'+loginopt+'\n')
+            _print('1.搜索\n2.最新上传\n3.继续上次任务\n4.快速筛选\n5.更新\n6.'+loginopt+'\n')
             input=raw_input('> ')
             if input=='3':main()
             elif input=='1':search()
@@ -962,10 +970,10 @@ if __name__ == '__main__':
             elif input=='4':quick_filter()
             elif input=='5':update()
             elif input=='6':loginopt=mklogin() or '!未登录'
-            else:print_c('按错了吧亲∑(っ °Д °;)')
+            else:_print('按错了吧亲∑(っ °Д °;)')
             print('\n'+'-'*50)
     except Exception,ex:
-        print_c('啊咧，出错了_(:з」∠)_ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
+        _print('啊咧，出错了_(:з」∠)_ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')
         f=open(getPATH0()+opath.sep+LOGPATH,'a')
         f.write(fmttime()+'Stopped.\n')
         traceback.print_exc(file=f)
