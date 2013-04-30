@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.2.0'
+__version__ = '2.3.3.0'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -571,6 +571,32 @@ class parse_fullsize(threading.Thread):
         content=urlget(url)
         picurl=re.findall('src="(.+)" style="background',content)
         self.reslist[self.index]=picurl[0]
+        
+def parse_indexlist():
+    global INDEXLIST
+    if INDEXLIST==[]:
+        #从索引页处理所有名称
+        content=urlget('http://www.roame.net/index')
+        #exp:<div class="l2"><a href="/index/kikis-delivery-service">魔女宅急便 - Kiki's Delivery Service</a></div>
+        #另三种：Vividred Operation - ，TYPE-MOON，GOSICK(6 pcs) 尼玛老子就为了这六个想了好久正则！！
+        #list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)[ -]+(.*)</a>',content):[ -]+无法匹配那6个，[ -]*无法分割字符串
+        #难道只能匹配好之后再分割么www好没劲我放弃了QAQ
+        #原来list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)</a>',content)
+        #不！我不会向不讲规范的站长低头的！！
+        #只要使用预处理大法并且第二、三个匹配变成非贪婪即可！这样>GOSICK</a>变成>GOSICK - </a啦~我怎么就那么笨呢wwwww
+        content=makesense(content.replace('</a',' - </a'))
+        #print content
+        INDEXLIST=re.findall('<a href=".*/index/([0-9a-z-]+)">(.*?) - (.*?)( - )?</a',content)
+        #debug用
+        """list2=re.findall('<a href="/index/([0-9a-z-]+)">(.+)[ -]*(.*)</a>',content)
+        print len(INDEXLIST),len(list2)
+        offset=0
+        for i in range(1225):
+            if INDEXLIST[i-offset][0]!=list2[i][0]:
+                print list2[i]
+                offset+=1
+        return"""
+    return INDEXLIST
 
 #def down_callback(saved,blocksize,total):
 #    x = 100.0 * saved * blocksize / total  
@@ -829,46 +855,27 @@ def search():
     """
    搜索界面
     """
-    urllist=[]
-    global INDEXLIST
-    if INDEXLIST==[]:
-        #从索引页处理所有名称
-        content=urlget('http://www.roame.net/index')
-        #exp:<div class="l2"><a href="/index/kikis-delivery-service">魔女宅急便 - Kiki's Delivery Service</a></div>
-        #另三种：Vividred Operation - ，TYPE-MOON，GOSICK(6 pcs) 尼玛老子就为了这六个想了好久正则！！
-        #list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)[ -]+(.*)</a>',content):[ -]+无法匹配那6个，[ -]*无法分割字符串
-        #难道只能匹配好之后再分割么www好没劲我放弃了QAQ
-        #原来list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)</a>',content)
-        #不！我不会向不讲规范的站长低头的！！
-        #只要使用预处理大法并且第二、三个匹配变成非贪婪即可！这样>GOSICK</a>变成>GOSICK - </a啦~我怎么就那么笨呢wwwww
-        content=makesense(content.replace('</a',' - </a'))
-        #print content
-        INDEXLIST=re.findall('<a href=".*/index/([0-9a-z-]+)">(.*?) - (.*?)( - )?</a',content)
-        #debug用
-        """list2=re.findall('<a href="/index/([0-9a-z-]+)">(.+)[ -]*(.*)</a>',content)
-        print len(INDEXLIST),len(list2)
-        offset=0
-        for i in range(1225):
-            if INDEXLIST[i-offset][0]!=list2[i][0]:
-                print list2[i]
-                offset+=1
-        return"""
+    idx_list=parse_indexlist()
     #询问输入
     input=raw_input(normstr('输入关键字: '))
     if sys.platform=='win32':input=input.decode('gb2312')
     else:input=input.decode('utf-8')
+    search_select(input,idx_list)
+
+def search_select(input,idx_list):
     count=0
+    urllist=[]
     #顺序查找并分割打印
-    for i in range(len(INDEXLIST)):
-        if re.search(input.encode('utf-8'), INDEXLIST[i][1], re.IGNORECASE) or \
-        re.search(input, INDEXLIST[i][2], re.IGNORECASE):
-            urllist.append(INDEXLIST[i][0])
+    for i in range(len(idx_list)):
+        if re.search(input.encode('utf-8'), idx_list[i][1], re.IGNORECASE) or \
+        re.search(input, idx_list[i][2], re.IGNORECASE):
+            urllist.append(idx_list[i][0])
             count+=1
-            if INDEXLIST[i][2]!='':
-                print normstr((str(count)+'.'+INDEXLIST[i][1]+'('+INDEXLIST[i][2]+')').decode('utf-8','ignore'))
+            if idx_list[i][2]!='':
+                print normstr((str(count)+'.'+idx_list[i][1]+'('+idx_list[i][2]+')').decode('utf-8','ignore'))
             else:
-                print normstr((str(count)+'.'+INDEXLIST[i][1]).decode('utf-8','ignore'))
-    print_c('找到'+str(count)+'个结果 ㄟ( ▔, ▔ )ㄏ')
+                print normstr((str(count)+'.'+idx_list[i][1]).decode('utf-8','ignore'))
+    print_c('共有'+str(count)+'个番组选项 ㄟ( ▔, ▔ )ㄏ')
     if count > 0:
         try:
             input=raw_input('> ') or '0'
@@ -885,16 +892,18 @@ def quick_filter():
     快速筛选+未分类xx
     """
     print_c('显示快速过滤选项：')
-    print_c('0.所有最新\t10.今日下载排行\t15.大家刚下载的\n1.最新16:9\t11.一周下载排行\t16.随机八张图片\n2.最新16:10\t12.30天下载排行\n3.最新4:3\t13.一周评分排行\t17.未分类画集\n4.最新5:4\t14.30天评分排行\t18.未分类散图\n5.最新其他横向\n6.最新竖向\n7.最新等宽')
+    print_c('0.所有最新\t10.今日下载排行\t15.大家刚下载的\n1.最新16:9\t11.一周下载排行\t16.随机八张图片\n2.最新16:10\t12.30天下载排行\t17.随机十个番组\n3.最新4:3\t13.一周评分排行\n4.最新5:4\t14.30天评分排行\n5.最新其他横向\t\t\t17.未分类画集\n6.最新竖向\t\t\t18.未分类散图\n7.最新等宽')
     try:
         input=int(raw_input('> '))
         if 0<=input<8 or 9<input<17:
             write_config('download','name','')
             write_config('download','built_in',input)
-        elif input==17:
-            write_config('download','name','misc-books')
         elif input==18:
+            write_config('download','name','misc-books')
+        elif input==19:
             write_config('download','name','misc')
+        elif input==17:
+           search_select('', random.sample(parse_indexlist(),10))
         else:
             raise ValueError
     except ValueError:#熊孩子没有输入数字
