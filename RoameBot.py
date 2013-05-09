@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.3.2'
+__version__ = '2.3.3.3'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -269,10 +269,8 @@ def mklogin():
     else:
         _print('登陆失败'+(len(result)>2 and '：'+result[2][1:-1].decode('unicode-escape') or ''))
 
-def makesense(str):
-    pxyarg=read_config('download','proxy_arg')
-    #pxyurlarg=read_config('download','proxy_urlarg')
-    return urllib.unquote(str).replace(pxyarg,'').replace('&amp;','')        
+
+
 #---工具：本地        
 def getPATH0():
     """
@@ -326,13 +324,17 @@ class getimgthread(threading.Thread):
             self.report.put(str)
         else:
             print(str)
-
+    def makesense(str):
+        pxyarg=read_config('download','proxy_arg')
+        #pxyurlarg=read_config('download','proxy_urlarg')
+        return urllib.unquote(str).replace(pxyarg,'').replace('&amp;','')
+    
     def run(self):
         global THREAD_PROGRESS
         self.tprint(fmttime()+self.propmt+'Started.')
         while not PICQUEUE.empty():
             self.src=PICQUEUE.get()
-            basename=re.findall('.+/([A-Za-z0-9._]+)',makesense(self.src['full']))[0]#切割文件名
+            basename=re.findall('.+/([A-Za-z0-9._]+)',self.makesense(self.src['full']))[0]#切割文件名
             filename=self.workingdir+opath.sep+basename
             #urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1):
             if opath.exists(filename) and self.skip_exist=='1':#存在则跳过
@@ -422,7 +424,7 @@ def parse_albumname_entry(url):
   albumname = TUPLE: 0=CHN, 1=ENG, 2=JPN
   entry = list: url, name, picnum
     """
-    content=makesense(urlget(url))
+    content=urlget(url)
     #exp :<title>夏目友人帐 - 英文名:Natsume Yuujinchou, 日文名:夏目友人帳 - 路游动漫图片壁纸网</title>
     if not read_config('download','proxy'):
         albumname=re.findall('title>(.+) -.+:(.+),.+:(.+) -',content)
@@ -448,7 +450,7 @@ def parse_latest():
     处理主页上最新图片并选择入口，写入config.ini
     """
     global LATESTCONTENT
-    LATESTCONTENT=LATESTCONTENT=='' and makesense(urlget(HOMEURL)) or LATESTCONTENT
+    LATESTCONTENT=LATESTCONTENT=='' and urlget(HOMEURL) or LATESTCONTENT
     #<div class="imagesr"><span>4小时前（2013-02-28 09:44）</span></div>
     #<div class="imagescatname"><a href="http://www.roame.net/index/hatsune-miku-kagamine/images">初音未来/镜音双子图片壁纸</a></div>
     #:28px;margin-left:4px">共更新了<b>18</b>张，点此查看更多 ...</a>
@@ -486,7 +488,7 @@ def parse_pagelist(url,pagenum,mode=0):
     global PICQUEUE
     up_to_date=False
     today_mode=False
-    content=makesense(urlget(url))
+    content=urlget(url)
     print('Parsing...'+'\b'*10),
     singlepic=re.findall('/h[23]>(.*?)<div',content,re.DOTALL)#singlepic 包含 thumb and full-size page url
     #<div style="color:#456"><span style="color:#abc;font-size:10px">by</span> <u>EUREKASEVEN</u></div>
@@ -584,7 +586,7 @@ def parse_indexlist():
         #原来list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)</a>',content)
         #不！我不会向不讲规范的站长低头的！！
         #只要使用预处理大法并且第二、三个匹配变成非贪婪即可！这样>GOSICK</a>变成>GOSICK - </a啦~我怎么就那么笨呢wwwww
-        content=makesense(content.replace('</a',' - </a'))
+        content=content.replace('</a',' - </a')
         #print content
         INDEXLIST=re.findall('<a href=".*/index/([0-9a-z-]+)">(.*?) - (.*?)( - )?</a',content)
         #debug用
