@@ -324,7 +324,7 @@ class getimgthread(threading.Thread):
             self.report.put(str)
         else:
             print(str)
-    def makesense(str):
+    def makesense(self,str):
         pxyarg=read_config('download','proxy_arg')
         #pxyurlarg=read_config('download','proxy_urlarg')
         return urllib.unquote(str).replace(pxyarg,'').replace('&amp;','')
