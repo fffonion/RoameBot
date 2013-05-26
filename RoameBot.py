@@ -4,11 +4,22 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.3.3'
+__version__ = '2.4.0.0'
 
-import urllib2,urllib,socket,\
- os,os.path as opath,ConfigParser,sys,traceback,\
- base64 as b64,Queue,random,threading,re,time
+import urllib2
+import urllib
+import socket
+import os,os.path as opath
+import ConfigParser
+import sys
+import traceback
+import base64 as b64
+import Queue
+import random
+import threading
+import re
+import time
+import httplib2plus as htlib2
 #---全局变量
 #已下载，总大小，开始时间，总下载数量，总下载大小，跳过数量
 THREADS=25
@@ -66,11 +77,14 @@ def chunk_report(bytes_got, chunk_size, total_size,init_time):
     print "%4.1f%% [%s]     %5d/%5dKB   %s ETA%s" % (percent,progressbar,bytes_got/1024,total_size/1024, eta,backspace),
     if bytes_got >= total_size:print backspace,    #完成
         
-def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',cookieid=-1,reportQ=None):
+def urlget(src,getimage=False,retries=3,chunk_size=64,downloaded=-1,referer='',cookieid=-1,reportQ=None):
     """
-   urllib2实现的下载函数
+   httplib2实现的下载函数,由于有些代理不支持HEAD方法，暂时使用urllib2获得头信息
     """
-    header={'X-Forward-For':'125.124.138.198','connection':'keep-alive'}
+    #初始化httplib2.Http及相关
+    http=htlib2.Http()
+    header={'connection':'keep-alive'}
+    #初始化在线代理相关
     pxyarg=read_config('download','proxy_arg')
     pxyurlarg=read_config('download','proxy_urlarg')
     pxy=read_config('download','proxy')+'?'+pxyarg+'&'+pxyurlarg+'='
@@ -88,36 +102,45 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
         src=src.replace(urllib.quote_plus('&'+pxyarg),'')
         #cnt=src.count('http')
     #print src
+    #初始化界面提示
     if cookieid==-1:prompt=''
     else:prompt=THREAD_NAME[cookieid]+': '
+    #界面提示分发函数
     def report(str,report):
         str=fmttime()+prompt+str
         if reportQ!=None:reportQ.put(str)
         else:print str
+    ###########################################下载部分
     try:
-        #构造request
+        #!构造user-agent
         rrange=lambda a,b,c=1: str(c==1 and random.randrange(a,b) or float(random.randrange(a*c,b*c))/c)
-        req = urllib2.Request(src)
         ua='Mozilla/'+rrange(4,7,10)+'.0 (Windows NT '+rrange(5,7)+'.'+rrange(0,3)+') AppleWebKit/'+rrange(535,538,10)+\
         ' (KHTML, like Gecko) Chrome/'+rrange(21,27,10)+'.'+rrange(0,9999,10)+' Safari/'+rrange(535,538,10)
         header['User-agent']=ua
         if getimage:#下载图片的话（或者在线更新
-            req.add_header('User-Agent', ua)
             #req.add_header('Referer', referer)
-            if cookieid!=-1:req.add_header('Cookie', COOKIE[cookieid])
-            #打开回复
-            resp = urllib2.urlopen(req)
+            if cookieid!=-1:header['Cookie']=COOKIE[cookieid]#req.add_header('Cookie', COOKIE[cookieid])
             #resp.info()
             content=''
             total_size=None
             sleep_retry=1
-            #处理内容
+            #!处理内容
             #urlget会下载网页或者图片
             #网页抓得快不会挂掉；图片抓得快会返回text/html，url错误会返回text/html，内容为oops(2)，url过期会返回8843字节的防盗链图
+            #!使用urllib2取得头信息
+            req = urllib2.Request(src)
+            req.add_header('User-Agent', ua)
+            resp = urllib2.urlopen(req)
             while total_size==None:
-                total_size=resp.info().getheader('Content-Length')
+                r,c = http.request(src,headers=header,method='HEAD')
+                if r['status']>500:#代理不支持
+                    total_size=resp.info().getheader('Content-Length')
+                    contenttype=resp.info().getheader('Content-Type')
+                else:
+                    total_size=r['content-length']
+                    contenttype=r['content-type']
                 time.sleep(GET_INTERVAL*sleep_retry)#服务器太捉鸡……睡一觉
-                if resp.info().getheader('Content-Type').strip()=='text/html':
+                if contenttype.strip()=='text/html':
                     if sleep_retry>27:total_size='-1'#最多睡三次链接错误flag
                     else:
                         report('Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.',reportQ)
@@ -140,26 +163,29 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
             bytes_got = 0
             init_time=time.time()
             #开始chunk read
-            while 1:
-                chunkrand=chunk_size*random.randint(800,1248)
-                chunk = resp.read(chunkrand)
-                content+=chunk
-                bytes_got += len(chunk)
-                if not chunk:#完成
-                    break
+            chunk_size*=random.randint(800,1248)
+            #!callback_hook
+            def update_hook(chunk_s,read_size):
+                #chunkrand=chunk_size*random.randint(800,1248)
+                #chunk = resp.read(chunkrand)
+                #content+=chunk
+                #bytes_got += len(chunk)
+                #if not chunk:#完成
+                #    break
+                #print read,total
                 if THREADS!=1:
                     global THREAD_PROGRESS
                     #print THREAD_PROGRESS[cookieid]
-                    THREAD_PROGRESS[cookieid]['downsize']=bytes_got
+                    THREAD_PROGRESS[cookieid]['downsize']=read_size
                     THREAD_PROGRESS[cookieid]['picsize']=total_size
-                    THREAD_PROGRESS[cookieid]['finishsize']+=chunkrand
+                    THREAD_PROGRESS[cookieid]['finishsize']+=chunk_size
                 else:#THREADS=1则是在在线更新
                     chunk_report(bytes_got, chunk_size, total_size,init_time)
+            stat,content=http.request(src,headers=header,chunk_size=chunk_size,callback_hook=update_hook)
             #content=chunk_read(resp, chunk*1024,chunk_report)
         else:#直接读取
             try:
-                import httplib2plus as htlib2
-                resp,content = htlib2.Http(TEMPPATH).request(src,headers=header,method='GET')
+                resp,content = http.request(src,headers=header,method='GET')
                 if int(resp['status'])>=400:raise urllib2.HTTPError
             except ImportError:
                 content = urllib2.urlopen(src).read()
@@ -301,6 +327,10 @@ def fmttime():
     """
     return '\b\b['+time.strftime('%Y-%m-%d %X',time.localtime())+'] '
 
+def legalpath(str):
+    return str.replace('|','').replace(':','').replace('?','').replace('\\','').replace('/','').replace('*','')\
+    .replace('<','').replace('>','')#.decode('utf-8')
+
 #---下载类
 class getimgthread(threading.Thread):
     def __init__(self,threadname,queue,workingdir,skip_exist,retries=3,chunk_size=8,downloaded=-1):
@@ -431,7 +461,7 @@ def parse_albumname_entry(url):
         #no jp exp :<title>阿倍野挢魔法商店街 - 英文名:Magical Shopping Arcade Abenobashi - 路游动漫图片壁纸网</title>
         if albumname==[]:albumname=re.findall('title>(.+) -.+:(.+)(.*) -',content)
         albumname_legal=[]
-        albumname_legal+=[albumname[0][i].replace('/',' ').replace('\\',' ').replace(':',' ') for i in range(len(albumname[0]))]
+        albumname_legal+=[legalpath(albumname[0][i]) for i in range(len(albumname[0]))]
     else:
         albumname=re.findall('class="hdrloci">(.*?)</a>',content)
         albumname_legal=[albumname[2]]+['','']
@@ -466,7 +496,7 @@ def parse_latest():
             updatetime+=testblock
             entries+=re.findall('imagescatname"><a href="http://www.roame.net/index/(.+)/[a-z0-9-]+">(.+)</a',allblocks[i])
             testdelta=re.findall(':28px;margin-left:4px">共更新了<b>(\d+)</b>张',allblocks[i])
-            deltanum.append(testdelta==[] and str(len(re.findall('<a title=',allblocks[i]))) or testdelta[0])
+            deltanum.append(testdelta==[] and str(len(re.findall('<a.*?title=',allblocks[i],re.DOTALL))) or testdelta[0])
     _print('最新上传('+str(len(entries))+')：')
     for i in range(len(entries)):
         _print(str(i+1)+'.'+entries[i][1].replace('图片壁纸','')+' ('+updatetime[i]+' 更新'+deltanum[i]+'张)')
@@ -523,7 +553,7 @@ def parse_pagelist(url,pagenum,mode=0):
         FILTER['min_size']<=float(piclength)<=FILTER['max_size'] and (not picupload[i] in FILTER['banned_uploader']):
             picelem.append({'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''})
             picelem[-1]['index']=i+(pagenum-1)*8
-            fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
+            fullsizepageurl=re.findall('href=\"(.+)\"',singlepic[i])[0]#原图url
             picelem[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
             #多线程抓取类启动
             fullpagethread.append(parse_fullsize(picelem[-1]['referpage'],fullurllist,len(picelem)-1))#偏移使用当前长度
@@ -687,7 +717,7 @@ def load_filter(filtername):
                 
 def load_local_picqueue(projfile_path):
     """
-  将图片信息写入 .roameproject
+  从 .roameproject读入图片信息
     """
     global PICQUEUE
     file=open(projfile_path,'r')
@@ -830,6 +860,7 @@ def main():
     reportqueue=Queue.Queue()
     threadlist=[getimgthread(str(i+2),reportqueue,working_dir,skip_exist,retries,chunk,-1) for i in range(len(COOKIE)-BUILTINUSER-1)]
     random.shuffle(threadlist)
+    #print threadlist[0].__name__,threadlist[1].__name__
     threadlist=[getimgthread('1',reportqueue,working_dir,skip_exist,retries,chunk,-1)]+threadlist
     #15个内置用户1~5
     threadsystem=[getimgthread(str(i+len(COOKIE)-BUILTINUSER+1),reportqueue,working_dir,skip_exist,retries,chunk,-1) for i in range(BUILTINUSER)]
@@ -895,6 +926,7 @@ def search_select(input,idx_list):
         else:
             main()
             return False
+    else:return False
     return True
     
 def quick_filter():
