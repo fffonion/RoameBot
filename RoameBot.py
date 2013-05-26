@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.3.3'
+__version__ = '2.3.3.4'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -466,7 +466,7 @@ def parse_latest():
             updatetime+=testblock
             entries+=re.findall('imagescatname"><a href="http://www.roame.net/index/(.+)/[a-z0-9-]+">(.+)</a',allblocks[i])
             testdelta=re.findall(':28px;margin-left:4px">共更新了<b>(\d+)</b>张',allblocks[i])
-            deltanum.append(testdelta==[] and str(len(re.findall('<a title=',allblocks[i]))) or testdelta[0])
+            deltanum.append(testdelta==[] and str(len(re.findall('<a.*?title=',allblocks[i],re.DOTALL))) or testdelta[0])
     _print('最新上传('+str(len(entries))+')：')
     for i in range(len(entries)):
         _print(str(i+1)+'.'+entries[i][1].replace('图片壁纸','')+' ('+updatetime[i]+' 更新'+deltanum[i]+'张)')
@@ -523,7 +523,7 @@ def parse_pagelist(url,pagenum,mode=0):
         FILTER['min_size']<=float(piclength)<=FILTER['max_size'] and (not picupload[i] in FILTER['banned_uploader']):
             picelem.append({'index':0,'thumb':'','referpage':'','full':'','height':0,'width':0,'length':0,'format':''})
             picelem[-1]['index']=i+(pagenum-1)*8
-            fullsizepageurl=re.findall('href=\"(.+)\"><img',singlepic[i])[0]#原图url
+            fullsizepageurl=re.findall('href=\"(.+)\"',singlepic[i])[0]#原图url
             picelem[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
             #多线程抓取类启动
             fullpagethread.append(parse_fullsize(picelem[-1]['referpage'],fullurllist,len(picelem)-1))#偏移使用当前长度
