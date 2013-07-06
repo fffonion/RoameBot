@@ -41,7 +41,7 @@ def mkcookie():
     
     ucmdstr=['J4SqatPjn0Jhl%40ZvHdiZBd8HUQDsBq42N','kQnttlk8Dn3xvCS9T1JxkymiK4n6NTBC','YnKP8btF02dcl0GH9YCX%40qsydDQVfDD6i','YxjyrNF0NVLwrtWpQTBifHTyYpnU7pcu9','CJcD2Ksj682F6lqxsv3lxLWKoofmpYxPQ','YTjulgTS0ozJIorksX6k%40mtLBltarLeBb','CpCKHZ06K5Io9yluNZ3F2srdmcokQuda4','CcolvIShcwfctcmYzwcyqNBwaini5vheX','h5QbuokCp2yL2%40WBzH3hQVISz3kD8THp','Y9GaSTVFYrzrjxGCBJWuJs%40XQFTrfG%40pq','Ctk9Z60xNbHWtU0nKsGUbIK5hqSwLkZI4','XdSvlrznykCxfya01aJQfPB4jrC4Tf7L','JpItp5Dxx9SInc306qTDaezhHeJY1sxHH','C5Fe0CfJyu7bk5daaBtQLWVLYgNS1XBY2','YW9bCU%40Nsw%40Zzxu9kbDNrTrYW0izkZPgu']#ucmdstr=['CY%408Tl8Z9GjXgp6p2UhqvJTHo3D7sVFpC','JP2SkSeeeb3hsrk7CST3XxmhpuY4Gszt9','JxKBgjlypSuBk4zkhJ3BtNrjdDUDq6yTb','YT47XihpT4LVdBUmFf4XWsK5b4haPZiK4','JwGe6d%4022UwKg2sYCjUsvzdrZZIp9oFDH','Cb31mI90szSyi4Vhhy%40z8UF1ov4XbjWhZ','C081U9vrfuYtSBIIlnHhb%40JVZyVXjfKlf','Fcnfqfk150YuPlf03FvXjmcFQN8UNbas','Cms14PaqKfj36a60o0u4a2uqyrTZBhB0X','JngqIdjYmr5TqNWJKhI6L2SWaXyec4UBT','JFiY%400vN%40Ti9sU7YPg6HZ8BgwhzbtZcZQ','JBX3j%40HaioijtW5eHPH3rpCPmuPUGSf','YJdQZCsozCfFI0yqebn0ZjQC3piok7N3Y','JrfvP3omCrhQrJnGlGDQoUWlWs3vnLaJ6','CnomrWQfYaaCK5jTButI9zscoSWCrw9Tb']
     global COOKIE
-    COOKIE=['']#空用户
+    COOKIE=[]#空用户
     cf=ConfigParser.ConfigParser()
     cf.read(getPATH0()+opath.sep+'config.ini')
     opts=cf.items('cookie')
