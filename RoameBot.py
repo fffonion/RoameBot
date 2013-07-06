@@ -574,12 +574,12 @@ class parse_fullsize(threading.Thread):
             if not url.startswith('http'):url=HOMEURL+url
             url=pxy+urllib.quote_plus(url)
         content=urlget(url,cookieid=1)
-        open('z:\\%d.htm'%random.randint(0,1000000),'a').write(content)
+        #open('z:\\%d.htm'%random.randint(0,1000000),'a').write(content)
         #而且特么用js动态生成链接了（- -
         js_sec=re.findall('document.write(.+)style="background:#ffe',content,re.DOTALL)
         args=re.findall('\+ \"(.+)\"',js_sec[0])
         #我的正则真是越写越骚了……
-        print ''.join(args[:5])
+        #print ''.join(args[:5])
         self.reslist[self.index]=''.join(args[:6])
         
 def parse_indexlist():
