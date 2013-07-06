@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.3.4'
+__version__ = '2.3.4.0'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -157,6 +157,8 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
                     chunk_report(bytes_got, chunk_size, total_size,init_time)
             #content=chunk_read(resp, chunk*1024,chunk_report)
         else:#直接读取
+            if cookieid!=-1:
+                header['Cookie']=COOKIE[cookieid]
             try:
                 import httplib2plus as htlib2
                 resp,content = htlib2.Http(TEMPPATH).request(src,headers=header,method='GET')
@@ -560,7 +562,8 @@ class parse_fullsize(threading.Thread):
         self.index=index
         self.url=url
     def run(self):
-        content=urlget(self.url)
+        #原图现在必须登录才能下载了QAQ
+        content=urlget(self.url,cookieid=1)
         deeperpage=re.findall('darlnks">.+index.html.+href="(.*?)" style.+display:block',content,re.DOTALL)#goto download page
         url=deeperpage[0]
         if read_config('download','proxy'):
@@ -570,9 +573,14 @@ class parse_fullsize(threading.Thread):
             url=urllib.quote_plus(url.replace(HOMEURL+'?'+pxyurlarg+'=').replace(pxy,''))
             if not url.startswith('http'):url=HOMEURL+url
             url=pxy+urllib.quote_plus(url)
-        content=urlget(url)
-        picurl=re.findall('src="(.+)" style="background',content)
-        self.reslist[self.index]=picurl[0]
+        content=urlget(url,cookieid=1)
+        open('z:\\%d.htm'%random.randint(0,1000000),'a').write(content)
+        #而且特么用js动态生成链接了（- -
+        js_sec=re.findall('document.write(.+)style="background:#ffe',content,re.DOTALL)
+        args=re.findall('\+ \"(.+)\"',js_sec[0])
+        #我的正则真是越写越骚了……
+        print ''.join(args[:5])
+        self.reslist[self.index]=''.join(args[:6])
         
 def parse_indexlist():
     global INDEXLIST
@@ -585,7 +593,7 @@ def parse_indexlist():
         #难道只能匹配好之后再分割么www好没劲我放弃了QAQ
         #原来list=re.findall('<a href="/index/([0-9a-z-]+)">(.+)</a>',content)
         #不！我不会向不讲规范的站长低头的！！
-        #只要使用预处理大法并且第二、三个匹配变成非贪婪即可！这样>GOSICK</a>变成>GOSICK - </a啦~我怎么就那么笨呢wwwww
+        #只要使用预img处理大法并且第二、三个匹配变成非贪婪即可！这样>GOSICK</a>变成>GOSICK - </a啦~我怎么就那么笨呢wwwww
         content=content.replace('</a',' - </a')
         #print content
         INDEXLIST=re.findall('<a href=".*/index/([0-9a-z-]+)">(.*?) - (.*?)( - )?</a',content)
