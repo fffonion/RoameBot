@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.4.0'
+__version__ = '2.3.4.1'
 
 import urllib2,urllib,socket,\
  os,os.path as opath,ConfigParser,sys,traceback,\
@@ -240,9 +240,9 @@ def mklogin():
         _print('已退出~')
         return
     #ajax提交，返回均为json，直接用，分割算了
-    name=raw_input(normstr('请输入用户名：'))
+    name=raw_input(normstr('路游用户名：'))
     if sys.platform=='win32':name=name.decode('cp936').encode('utf-8')
-    pw=raw_input(normstr('请输入密码：'))
+    pw=raw_input(normstr('然后是密码：'))
     data='m='+name+'&p='+pw
     req = urllib2.Request('http://www.roame.net/ajax.php?a=4098&_nc='+str(int(time.time())))
     resp=urllib2.urlopen(req,data)
@@ -974,14 +974,18 @@ if __name__ == '__main__':
         mkcookie()
         while True:
             _print('1.搜索\n2.最新上传\n3.继续上次任务\n4.快速筛选\n5.更新\n6.'+loginopt+'\n')
-            input=raw_input('> ')
-            if input=='3':main()
-            elif input=='1':search()
-            elif input=='2':parse_latest()
-            elif input=='4':quick_filter()
-            elif input=='5':update()
-            elif input=='6':loginopt=mklogin() or '!未登录'
-            else:_print('按错了吧亲∑(っ °Д °;)')
+            if loginopt=='!未登录':
+                _print('你还木有登录(⊙﹏⊙) ，要下载原图必须至少添加一个用户~')
+                loginopt=mklogin() or '!未登录'
+            else:
+                input=raw_input('> ')
+                if input=='3':main()
+                elif input=='1':search()
+                elif input=='2':parse_latest()
+                elif input=='4':quick_filter()
+                elif input=='5':update()
+                elif input=='6':loginopt=mklogin() or '!未登录'
+                else:_print('按错了吧亲∑(っ °Д °;)')
             print('\n'+'-'*50)
     except Exception,ex:
         _print('啊咧，出错了_(:з」∠)_ ('+str(ex)+')\n错误已经记载在'+LOGPATH+'中')

@@ -12,6 +12,7 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 内置账号因为大家都在用所以可能会有问题，你可以[使用这个工具](https://raw.github.com/fffonion/RoameBot/master/addUserUtil.py)添加自己的账号
 ###2.关于增量更新已下载的壁纸
 只要保证保存目录(dir_path)相同，RoameBot就会智能地选择下载未下载的壁纸，跳过已有的
+###3.2013年7月网站更新后，只有登陆用户才能下载原图，因此请在程序内登陆或用addUserUtil.py添加至少一个用户
 
 
 旧版点这里[(﹁ ﹁ )σ](https://github.com/fffonion/RoameBot/tree/1.6)
