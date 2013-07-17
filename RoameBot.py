@@ -80,7 +80,6 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
     """
    urllib2实现的下载函数
     """
-    print src
     header={'X-Forward-For':'125.124.138.198','connection':'keep-alive'}
     pxyarg=read_config('download','proxy_arg')
     pxyurlarg=read_config('download','proxy_urlarg')
