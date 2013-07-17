@@ -1,14 +1,24 @@
-﻿#!/usr/bin/python2.7
+#!/usr/bin/python2.7
 # -*- coding:utf-8 -*-
 # A multitask downloader for roame.net
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.4.1'
+__version__ = '2.3.4.2'
 
-import urllib2,urllib,socket,\
- os,os.path as opath,ConfigParser,sys,traceback,\
- base64 as b64,Queue,random,threading,re,time
+import urllib2
+import urllib
+import socket
+import os,os.path as opath
+import ConfigParser
+import sys
+import traceback
+import base64 as b64
+import Queue
+import random
+import threading
+import re
+import time
 #---全局变量
 #已下载，总大小，开始时间，总下载数量，总下载大小，跳过数量
 THREADS=25
@@ -70,6 +80,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
     """
    urllib2实现的下载函数
     """
+    print src
     header={'X-Forward-For':'125.124.138.198','connection':'keep-alive'}
     pxyarg=read_config('download','proxy_arg')
     pxyurlarg=read_config('download','proxy_urlarg')
@@ -123,7 +134,7 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
                         report('Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.',reportQ)
                         sleep_retry*=3
             total_size = int(total_size.strip())
-            if total_size<=8843:#链接错误=-1或过期=8843
+            if total_size==-1 or total_size==8843:#链接错误=-1或过期=8843
                 report('Url expired or broken. Reparsing from referer.',reportQ)
                 src=['']
                 parse_fullsize(referer,src,0).run()
@@ -233,45 +244,52 @@ def mklogin():
     """
     通过模拟ajax请求得到cookie并存储
     """
-    name=read_config('cookie','uname')
-    if name!='':
-        write_config('cookie','uname','')
-        del_option('cookie',name)
-        _print('已退出~')
-        return
-    #ajax提交，返回均为json，直接用，分割算了
-    name=raw_input(normstr('路游用户名：'))
-    if sys.platform=='win32':name=name.decode('cp936').encode('utf-8')
-    pw=raw_input(normstr('然后是密码：'))
-    data='m='+name+'&p='+pw
-    req = urllib2.Request('http://www.roame.net/ajax.php?a=4098&_nc='+str(int(time.time())))
-    resp=urllib2.urlopen(req,data)
-    coo=resp.info().getheader('Set-Cookie')
-    result=resp.read()[1:-1].split(',')
-    if result[1]=='0':
-        _print('登录成功！已保存Cookie~')
-        coo=re.findall('uid=(.+); exp.+upw=(.+); exp.+cmd=(.+); exp',str(coo))[0]
-        coo='uid='+coo[0]+';upw='+coo[1]+';cmd='+coo[2]
-        _print('正在获取用户状态……'+'\b'*25)
-        req = urllib2.Request('http://www.roame.net/ajax.php?a=769&_nc='+str(int(time.time())))
-        req.add_header('Cookie',coo)
-        resp=urllib2.urlopen(req,'i=1').read()
-        resp=resp.replace('"','').decode('unicode-escape').split(',')
-        _print(' '*25+'\b'*25+'获取状态成功！')
-        #共88组:1,0状态码，3-49界面标签，50 [a@b.com 51 !!name!! 52 成员级 53 2012-07-09
-        #54 http:\/\/www.roame.net\/space\ 57 !!id!!] 59 路人 66 [1993 67 7 68 9] 69 19
-        #71 [2 (2) 72 60 (60) 73 0.00MB 74 2]
-        #85 [100 86 0 87 0]]
-        uname=resp[51]
-        _print('['+uname+'] - '+resp[57][:-1]+'\n用户标识：'+resp[50][1:]+'\n隶属组  ：'+resp[52]+\
-            ' - '+resp[59]+'\n结算信息：积分'+resp[85][1:]+', LYB'+resp[86]+', YLB'+resp[87][:-2])
-        write_config('cookie','uname',uname.decode('utf-8').encode('cp936'))
-        write_config('cookie',uname.decode('utf-8').encode('cp936'),coo)
-        return '已登录('+uname+')'
-    else:
-        _print('登陆失败'+(len(result)>2 and '：'+result[2][1:-1].decode('unicode-escape') or ''))
-
-
+    while(True):
+        user_cnt=read_config('cookie','user_cnt') or '0'
+        name=raw_input(normstr('输入路游用户名(再输入一次可退出登陆):'))
+        if sys.platform=='win32':
+            name_u=name.decode('cp936').encode('utf-8')
+        else:
+            name_u=name
+        if read_config('cookie',name)=='':
+            #ajax提交，返回均为json，直接用，分割算了
+            pw=raw_input(normstr('然后是密码：'))
+            data='m='+name_u+'&p='+pw
+            req = urllib2.Request('http://www.roame.net/ajax.php?a=4098&_nc='+str(int(time.time())))
+            resp=urllib2.urlopen(req,data)
+            coo=resp.info().getheader('Set-Cookie')
+            result=resp.read()[1:-1].split(',')
+            if result[1]=='0':
+                _print('登录成功！已捕获Cookie~')
+                coo=re.findall('uid=(.+); exp.+upw=(.+); exp.+cmd=(.+); exp',str(coo))[0]
+                coo='uid='+coo[0]+';upw='+coo[1]+';cmd='+coo[2]
+                _print('正在获取用户状态……'+'\b'*25)
+                req = urllib2.Request('http://www.roame.net/ajax.php?a=769&_nc='+str(int(time.time())))
+                req.add_header('Cookie',coo)
+                resp=urllib2.urlopen(req,'i=1').read()
+                resp=resp.replace('"','').decode('unicode-escape').split(',')
+                _print(' '*25+'\b'*25+'获取状态成功！')
+                #共88组:1,0状态码，3-49界面标签，50 [a@b.com 51 !!name!! 52 成员级 53 2012-07-09
+                #54 http:\/\/www.roame.net\/space\ 57 !!id!!] 59 路人 66 [1993 67 7 68 9] 69 19
+                #71 [2 (2) 72 60 (60) 73 0.00MB 74 2]
+                #85 [100 86 0 87 0]]
+                uname=resp[51]
+                _print('['+uname+'] - '+resp[57][:-1]+'\n用户标识：'+resp[50][1:]+'\n隶属组  ：'+resp[52]+\
+                    ' - '+resp[59]+'\n结算信息：积分'+resp[85][1:]+', LYB'+resp[86]+', YLB'+resp[87][:-2])
+                user_cnt=str(int(user_cnt)+1)
+                write_config('cookie','user_cnt',user_cnt)
+                write_config('cookie',uname.decode('utf-8').encode('cp936'),coo)
+                #return '已登录(%s个用户)'%user_cnt
+            else:
+                _print('登陆失败'+(len(result)>2 and '：'+result[2][1:-1].decode('unicode-escape') or ''))
+        else:
+            if raw_input(normstr('%s 确定要退出登陆咩-v-(y/n)？'%name_u))=='y':
+                del_option('cookie',name)
+                user_cnt=user_cnt=='0' and '0' or str(int(user_cnt)-1)
+                write_config('cookie','user_cnt',user_cnt)
+                _print('已退出~')
+        if raw_input(normstr('继续用户操作?(y/n)'))!='y':
+            return '已登录(%s个用户)'%user_cnt
 
 #---工具：本地        
 def getPATH0():
@@ -717,7 +735,7 @@ def first_run():
     \ndir_name = 2\ndir_path = \nname = hyouka\nthreads = 3\ndir_pref = \ndir_suff = \nbuilt_in = 21\nfilter = filter_0\
     \nfirst_page_num = \nproxy = \nproxy_arg = \nproxy_urlarg = \n\n[filter_0]\nratio = 1|7\
     \nmax_length =     \nmax_width = \nmin_length = \nmin_width = \nmax_size = \nmin_size = \nbanned_uploader = \
-    \n\n[cookie]\nuname =')
+    \n\n[cookie]\nuser_cnt =')
     f.flush()
     f.close()
     _print("""【首次运行】
@@ -735,7 +753,7 @@ def first_run():
 - 图文说明在这里：http://www.gn00.com/thread-220277-1-1.html
 
 ·ω·）ノ    mail: xijinping@yooooo.us    blog: http://www.yooooo.us
-2013-2-28
+2013-7-17
 
 按回车键继续……
     """)
@@ -944,6 +962,7 @@ def update():
             ext='.exe'
             _print('二进制文件较大，你也可以直接从这里下载：http://t.cn/zYcYyQc')
             filename=getPATH0()+opath.sep+'RoameBot.'+newver+ext
+            _print('\n请手动替换RoameBot.%s%s到RoameBot.exe'%(newver,ext))
         else:
             ext='.py'
             #filename=getPATH0()+opath.sep+'RoameBot.py'
@@ -962,9 +981,9 @@ if __name__ == '__main__':
         if not opath.exists(getPATH0()+opath.sep+'config.ini'):#first time
             first_run()
         init()
-        uname=read_config('cookie','uname')
-        if uname=='':loginopt='!未登录'
-        else:loginopt='已登录('+uname+')'
+        ucnt=read_config('cookie','user_cnt')
+        if ucnt=='' or ucnt=='0':loginopt='!未登录'
+        else:loginopt='已登录(%s个用户)'%ucnt
         #重设默认编码
         reload(sys)
         sys.setdefaultencoding('utf-8')

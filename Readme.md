@@ -9,10 +9,10 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 ##小技巧
 ###1.关于多任务下载
 路游社区对图片下载会话作了限制，因此无法实现多线程。但从2.0版本开始本爬虫具有了多任务下载的能力。
-内置账号因为大家都在用所以可能会有问题，你可以[使用这个工具](https://raw.github.com/fffonion/RoameBot/master/addUserUtil.py)添加自己的账号
+内置账号因为大家都在用所以可能会有问题，你可以在主菜单选择6来添加多个用户
 ###2.关于增量更新已下载的壁纸
 只要保证保存目录(dir_path)相同，RoameBot就会智能地选择下载未下载的壁纸，跳过已有的
-###3.2013年7月网站更新后，只有登陆用户才能下载原图，因此请在程序内登陆或用addUserUtil.py添加至少一个用户
+###3.2013年7月网站更新后，只有登陆用户才能下载原图，因此请在程序内登陆至少一个用户
 
 
 旧版点这里[(﹁ ﹁ )σ](https://github.com/fffonion/RoameBot/tree/1.6)
@@ -22,14 +22,15 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 在界面选择1即可，支持中英文搜索，支持正则表达式，并按默认设置下载
 ###2.使用“快速筛选”
 在界面选择4，按照根据<http://www.roame.net/today>页的快速筛选选项，以及“未分类画集”，“未分类散图”，“随机十个番组”进行快速选择
-###3.使用’最新上传”
+###3.使用“最新上传”
 在界面选择3，从首页抓取最新上传的壁纸信息，可以直接下载/更新
 ###4.使用“继续上次任务”
 在界面选择3；你可以
  - 恢复上次已中断的任务（直接输入3即可）
  - 检查以前下载的番组有无新壁纸发布，并下载新壁纸（这需要读取上次目录下的.roamepast文件，须确保保存目录dir_path未变化）
-
-###5.配置文件config.ini说明
+###5.添加多个用户
+在界面选择6，按提示添加/删除用户；已登录的用户信息保存在config.ini中，请注意信息安全
+###6.配置文件config.ini说明
 ####[download]块
 ***
 ####skip_exist
@@ -122,6 +123,7 @@ python脚本跨平台。windows用户可[直接下载.exe](https://github.com/ff
 ***
 ####var
 cookie的内容，用|分割，添加教程见(https://github.com/fffonion/RoameBot/wiki/Add-custom-cookie)
+2.3.5.2版本开始咳可直接在主程序内添加用户
 
 ##授权
 [CC BY-3.0授权](http://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0协议文本)
