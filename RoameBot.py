@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.4.2'
+__version__ = '2.3.4.3'
 
 import urllib2
 import urllib
@@ -57,7 +57,7 @@ def mkcookie():
     opts=cf.items('cookie')
     for i in range(len(opts)):
         opt=opts[i][0]
-        if opt !='uname' and opt !='var':
+        if opt !='user_cnt' and opt !='var':
             COOKIE+=[opts[i][1]]
     cnt=len(unamepw[0])/8
     COOKIE+=['uid='+b64.decodestring(unamepw[0][i*8:(i+1)*8])+';upw='+b64.decodestring(unamepw[1])+';cmd='+ucmdstr[i]+';' for i in range(cnt)]
@@ -133,8 +133,12 @@ def urlget(src,getimage=False,retries=3,chunk_size=8,downloaded=-1,referer='',co
                         report('Got plain content. Retrying in '+str(GET_INTERVAL*sleep_retry)+'s.',reportQ)
                         sleep_retry*=3
             total_size = int(total_size.strip())
-            if total_size==-1 or total_size==8843:#链接错误=-1或过期=8843
-                report('Url expired or broken. Reparsing from referer.',reportQ)
+            if total_size==-1 or total_size==8843 or total_size==8682:#链接错误=-1或过期=8843或繁忙=8682
+                if total_size==8682:
+                	report('Server returns a busy reponse. Wait 2 seconds.',reportQ)
+                	time.sleep(2)
+                else:
+                	report('Url expired or broken. Reparsing from referer.',reportQ)
                 src=['']
                 parse_fullsize(referer,src,0).run()
                 src=src[0]
@@ -373,10 +377,10 @@ class getimgthread(threading.Thread):
                 #设置监视起始点
                 THREAD_PROGRESS[self.id-1]['inittime']=time.time()
                 #保存到文件
-                fileHandle=open(filename,'wb')
-                fileHandle.write(urlget(self.src['full'],True,self.retries,self.chunk_size,-1,\
-                                    self.src['referpage'],THREADS==1 and -1 or self.id-1,self.report))
-                fileHandle.close()
+                filecontent=urlget(self.src['full'],True,self.retries,self.chunk_size,-1,\
+	                                    self.src['referpage'],THREADS==1 and -1 or self.id-1,self.report)
+                with open(filename,'wb') as f:
+	                f.write(filecontent)
                 self.tprint(fmttime()+self.propmt+'Finish '+basename+'.')
                 THREAD_PROGRESS[self.id-1]['finishcount']+=1
         THREAD_PROGRESS[self.id-1]['inittime']=-1#退出标识
@@ -966,9 +970,9 @@ def update():
             ext='.py'
             #filename=getPATH0()+opath.sep+'RoameBot.py'
             filename=sys.argv[0]
-        fileHandle=open(filename,'wb')
-        fileHandle.write(urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8))
-        fileHandle.close()
+        filecontent=urlget("https://github.com/fffonion/RoameBot/raw/master/RoameBot"+ext,True,3,8)
+        with open(filename,'wb') as f:
+	        f.write(filecontent)
         _print('\n更新到了版本：'+newver+'\n[注意事项]\n'+notification)
     else:
         _print('已经是最新版本啦更新控：'+__version__)
