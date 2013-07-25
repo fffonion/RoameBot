@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.4.3'
+__version__ = '2.3.4.4'
 
 import urllib2
 import urllib
