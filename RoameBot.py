@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.4.4'
+__version__ = '2.3.4.5'
 
 import urllib2
 import urllib
@@ -550,7 +550,9 @@ def parse_pagelist(url,pagenum,mode=0):
             picelem[-1]['referpage']=HOMEURL+fullsizepageurl.replace(HOMEURL,'')
             #多线程抓取类启动
             fullpagethread.append(parse_fullsize(picelem[-1]['referpage'],fullurllist,len(picelem)-1))#偏移使用当前长度
-            if not read_config('download','proxy'):fullpagethread[-1].start()
+            if not read_config('download','proxy'):
+                fullpagethread[-1].setDaemon(True)
+                fullpagethread[-1].start()
             #picelem[i]['full']=parse_fullsize(picelem[i]['referpage'])
             picelem[-1]['thumb']=re.findall('src=\"(.+)\"\/>',singlepic[i])[0]#缩略图url
             picelem[-1]['width']=picsize[i][0]#图宽
@@ -561,6 +563,7 @@ def parse_pagelist(url,pagenum,mode=0):
     #不能使用singlepic因为增量更新的需要，需要截去一部分
     if read_config('download','proxy'):
         for i in range(len(picelem)):
+            fullpagethread[i].setDaemon(True)
             fullpagethread[i].start()
             fullpagethread[i].join()
     else:
@@ -869,9 +872,11 @@ def main():
     global THREAD_PROGRESS
     for i in range(THREADS):
         THREAD_PROGRESS[int(threadlist[i].name)-1]['inittime']=-2
+        threadlist[i].setDaemon(True)
         threadlist[i].start()
     if THREADS>1:
         report=reportthread(reportqueue)
+        report.setDaemon(True)
         report.start()
     skipcount=0
     for i in range(THREADS):
