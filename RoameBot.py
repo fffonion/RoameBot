@@ -4,7 +4,7 @@
 # Contributor:
 #      fffonion        <fffonion@gmail.com>
 
-__version__ = '2.3.4.5'
+__version__ = '2.3.4.6'
 
 import urllib2
 import urllib
@@ -960,7 +960,7 @@ def update():
     """
     在线更新
     """
-    newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt",True)
+    newver=urlget("https://raw.github.com/fffonion/RoameBot/master/version.txt",True).rstrip(' \n\r')
     notification=urlget("https://raw.github.com/fffonion/RoameBot/master/notification.txt",True)
     global THREADS
     THREADS=1#指定单线程flag
